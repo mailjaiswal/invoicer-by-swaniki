@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <title>Invoicer by Swaniki</title>
+  <rect x="1" y="1" width="46" height="46" rx="13" fill="#1A6553" />
+  <path
+    d="M13 12h13l7 7v17a2.5 2.5 0 0 1-2.5 2.5H15.5A2.5 2.5 0 0 1 13 36V14.5A2.5 2.5 0 0 1 15.5 12H13Z"
+    fill="#ffffff"
+  />
+  <path
+    d="M26 12v7h7"
+    fill="none"
+    stroke="#1A6553"
+    stroke-width="2.4"
+    stroke-linejoin="round"
+  />
+  <rect x="17" y="22.5" width="10" height="2.2" rx="1.1" fill="#1A6553" />
+  <rect x="17" y="28" width="14" height="2.2" rx="1.1" fill="#1A6553" />
+  <rect x="17" y="33.5" width="8" height="2.2" rx="1.1" fill="#1A6553" />
+</svg>
