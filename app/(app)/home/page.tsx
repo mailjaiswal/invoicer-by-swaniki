@@ -2,17 +2,49 @@
 
 import type { ComponentType, SVGProps } from "react";
 import Link from "next/link";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useApp, useAppCurrency } from "@/lib/providers";
-import { greetingForHour, formatMoney } from "@/lib/formatting";
+import { db } from "@/lib/db/database";
+import { listInvoices } from "@/lib/db/invoices";
+import { greetingForHour, formatMoney, formatDate } from "@/lib/formatting";
+import { deriveInvoiceStatus } from "@/lib/invoice-status";
 import { Button } from "@/components/common/button";
 import { Card, CardContent } from "@/components/common/card";
 import { EmptyState } from "@/components/common/empty-state";
 import { BrandLogo } from "@/components/common/brand-logo";
-import { Plus, Zap, FileText, TrendingUp, Wallet, CheckCircle2 } from "lucide-react";
+import { StatusBadge } from "@/components/invoice/status-badge";
+import {
+  Plus,
+  Zap,
+  FileText,
+  TrendingUp,
+  CheckCircle2,
+  ChevronRight,
+} from "lucide-react";
 
 export default function HomePage() {
   const { business } = useApp();
   const currency = useAppCurrency();
+
+  const invoices = useLiveQuery(() => listInvoices(), []) ?? [];
+  const payments = useLiveQuery(() => db.payments.toArray(), []) ?? [];
+
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const outstanding = invoices
+    .filter((invoice) => deriveInvoiceStatus(invoice, now) !== "paid")
+    .reduce((sum, invoice) => sum + invoice.payment.balance, 0);
+
+  const invoicedThisMonth = invoices
+    .filter((invoice) => invoice.invoiceDate.startsWith(monthKey))
+    .reduce((sum, invoice) => sum + invoice.total, 0);
+
+  const collectedThisMonth = payments
+    .filter((payment) => payment.date.startsWith(monthKey))
+    .reduce((sum, payment) => sum + payment.amount, 0);
+
+  const recent = invoices.slice(0, 5);
 
   return (
     <div className="space-y-8">
@@ -53,20 +85,20 @@ export default function HomePage() {
         <SummaryTile
           icon={TrendingUp}
           label="Outstanding"
-          value={formatMoney(0, currency)}
-          hint="You're all caught up."
+          value={formatMoney(outstanding, currency)}
+          hint={outstanding === 0 ? "You're all caught up." : "Unpaid balance"}
         />
         <SummaryTile
           icon={FileText}
           label="Invoiced this month"
-          value={formatMoney(0, currency)}
-          hint="No invoices yet"
+          value={formatMoney(invoicedThisMonth, currency)}
+          hint={invoicedThisMonth === 0 ? "No invoices yet" : "This month"}
         />
         <SummaryTile
           icon={CheckCircle2}
           label="Paid this month"
-          value={formatMoney(0, currency)}
-          hint="No payments yet"
+          value={formatMoney(collectedThisMonth, currency)}
+          hint={collectedThisMonth === 0 ? "No payments yet" : "This month"}
         />
       </section>
 
@@ -83,21 +115,54 @@ export default function HomePage() {
             href="/invoices"
             className="flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
           >
-            <Wallet className="h-4 w-4" aria-hidden="true" />
             View all
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
 
-        <EmptyState
-          icon={<FileText className="h-7 w-7" aria-hidden="true" />}
-          title="Your first invoice is just a few taps away."
-          description="No invoices yet. Create one in under a minute — no sign-up needed."
-          action={
-            <Link href="/invoice/new">
-              <Button>Create your first invoice</Button>
-            </Link>
-          }
-        />
+        {recent.length === 0 ? (
+          <EmptyState
+            icon={<FileText className="h-7 w-7" aria-hidden="true" />}
+            title="Your first invoice is just a few taps away."
+            description="No invoices yet. Create one in under a minute — no sign-up needed."
+            action={
+              <Link href="/invoice/new">
+                <Button>Create your first invoice</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <ul className="space-y-2">
+            {recent.map((invoice) => (
+              <li key={invoice.id}>
+                <Link
+                  href={`/invoice/view?id=${invoice.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 transition-colors hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:bg-stone-800"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-300">
+                    <FileText className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-stone-900 dark:text-white">
+                      {invoice.invoiceNumber}
+                    </span>
+                    <span className="block truncate text-xs text-stone-500 dark:text-stone-400">
+                      {invoice.customerSnapshot.name || "Unknown customer"} ·{" "}
+                      {formatDate(invoice.invoiceDate)}
+                    </span>
+                  </span>
+                  <StatusBadge
+                    status={deriveInvoiceStatus(invoice, now)}
+                    className="hidden sm:inline-flex"
+                  />
+                  <span className="text-sm font-semibold text-stone-900 dark:text-white">
+                    {formatMoney(invoice.total, currency)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

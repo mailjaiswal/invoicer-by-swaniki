@@ -41,6 +41,8 @@ export class InvoiceDatabase extends Dexie {
 
 export const db = new InvoiceDatabase();
 
+export class DataError extends Error {}
+
 export function now(): number {
   return Date.now();
 }
