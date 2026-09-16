@@ -9,7 +9,17 @@ import { formatDate, formatMoney } from "@/lib/formatting";
 import { taxLabel } from "@/lib/calculations";
 import { buildReceiptNumber } from "@/lib/print";
 import { buildUpiUrl, isValidUpiId } from "@/lib/upi";
-import QRCode from "qrcode";
+import type QRCode from "qrcode";
+
+let qrApi: typeof QRCode | undefined;
+
+/** Load the QR generator lazily, like pdfmake, so view/receipt pages stay light. */
+async function getQRCode(): Promise<typeof QRCode> {
+  if (qrApi) return qrApi;
+  const mod = (await import("qrcode")) as unknown;
+  qrApi = (mod as { default?: typeof QRCode })?.default ?? (mod as typeof QRCode);
+  return qrApi;
+}
 
 type PdfMakeModule = typeof import("pdfmake/build/pdfmake").default;
 
@@ -501,7 +511,7 @@ export async function buildUpiQrDataUrl(
     note,
   });
   try {
-    return await QRCode.toDataURL(url, { width: 240, margin: 1 });
+    return await (await getQRCode()).toDataURL(url, { width: 240, margin: 1 });
   } catch {
     return undefined;
   }

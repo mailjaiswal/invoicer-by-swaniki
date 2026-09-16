@@ -10,6 +10,7 @@ import { Sheet } from "@/components/common/sheet";
 import { Card, CardContent } from "@/components/common/card";
 import { EmptyState } from "@/components/common/empty-state";
 import { useAppCurrency, useToast } from "@/lib/providers";
+import { db } from "@/lib/db/database";
 import { deleteProduct, listProducts, upsertProduct } from "@/lib/db/records";
 import { formatMoney } from "@/lib/formatting";
 import type { Product, ProductDraft } from "@/lib/types";
@@ -52,6 +53,23 @@ export default function ProductsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Product | null>(null);
   const [busy, setBusy] = useState<"save" | "delete" | null>(null);
+
+  const invoiceCountsByProduct = useLiveQuery(async () => {
+    const counts = new Map<string, number>();
+    const all = await db.invoices.toArray();
+    for (const invoice of all) {
+      const seen = new Set<string>();
+      for (const item of invoice.items) {
+        if (!item.productId || seen.has(item.productId)) continue;
+        seen.add(item.productId);
+        counts.set(item.productId, (counts.get(item.productId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, []);
+  const referencedCount = deleting
+    ? invoiceCountsByProduct?.get(deleting.id) ?? 0
+    : 0;
 
   const filtered = useMemo(() => {
     if (!products) return products;
@@ -274,7 +292,7 @@ export default function ProductsPage() {
         open={!!deleting}
         onClose={() => setDeleting(null)}
         title="Remove this product?"
-        description="Past invoices are unaffected. This just removes it from your saved list."
+        description="This just removes it from your saved list. Past invoices are unaffected."
       >
         <div className="space-y-3">
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
@@ -283,6 +301,14 @@ export default function ProductsPage() {
               <p className="mt-0.5 text-xs opacity-80">{deleting.description}</p>
             )}
           </div>
+          {referencedCount > 0 && (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+              Used on {referencedCount}{" "}
+              {referencedCount === 1 ? "invoice" : "invoices"} on this device.
+              Those line items keep their own name, rate and tax as a snapshot,
+              so history stays accurate.
+            </p>
+          )}
           <div className="flex gap-2">
             <Button variant="secondary" className="flex-1" onClick={() => setDeleting(null)}>
               Cancel

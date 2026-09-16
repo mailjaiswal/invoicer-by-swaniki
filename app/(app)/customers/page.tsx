@@ -10,6 +10,7 @@ import { Sheet } from "@/components/common/sheet";
 import { Card, CardContent } from "@/components/common/card";
 import { EmptyState } from "@/components/common/empty-state";
 import { useToast } from "@/lib/providers";
+import { db } from "@/lib/db/database";
 import { deleteCustomer, listCustomers, upsertCustomer } from "@/lib/db/records";
 import type { Customer, CustomerDraft } from "@/lib/types";
 
@@ -49,6 +50,22 @@ export default function CustomersPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Customer | null>(null);
   const [busy, setBusy] = useState<"save" | "delete" | null>(null);
+
+  const invoiceCountsByCustomer = useLiveQuery(async () => {
+    const counts = new Map<string, number>();
+    const all = await db.invoices.toArray();
+    for (const invoice of all) {
+      if (!invoice.customerId) continue;
+      counts.set(
+        invoice.customerId,
+        (counts.get(invoice.customerId) ?? 0) + 1
+      );
+    }
+    return counts;
+  }, []);
+  const referencedCount = deleting
+    ? invoiceCountsByCustomer?.get(deleting.id) ?? 0
+    : 0;
 
   const filtered = useMemo(() => {
     if (!customers) return customers;
@@ -280,13 +297,21 @@ export default function CustomersPage() {
         open={!!deleting}
         onClose={() => setDeleting(null)}
         title="Remove this customer?"
-        description="The customer's past invoices stay untouched. This just removes them from your list."
+        description="This just removes them from your list. Their past invoices stay intact."
       >
         <div className="space-y-3">
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
             <p className="font-semibold">{deleting?.name}</p>
             {deleting?.company && <p className="mt-0.5 text-xs opacity-80">{deleting.company}</p>}
           </div>
+          {referencedCount > 0 && (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+              Referenced by {referencedCount}{" "}
+              {referencedCount === 1 ? "invoice" : "invoices"} on this device.
+              Those invoices keep the customer&apos;s name and details as a
+              snapshot, so history stays accurate.
+            </p>
+          )}
           <div className="flex gap-2">
             <Button variant="secondary" className="flex-1" onClick={() => setDeleting(null)}>
               Cancel

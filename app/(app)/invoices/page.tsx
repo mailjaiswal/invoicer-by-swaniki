@@ -19,6 +19,7 @@ import { formatMoney, formatDate } from "@/lib/formatting";
 import { Input } from "@/components/common/input";
 import { Button } from "@/components/common/button";
 import { EmptyState } from "@/components/common/empty-state";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { StatusBadge } from "@/components/invoice/status-badge";
 import { cn } from "@/lib/utils";
 import type { Invoice, InvoiceStatus } from "@/lib/types";
@@ -38,6 +39,11 @@ export default function InvoicesPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | InvoiceStatus>("all");
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    number: string;
+  } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { showToast } = useToast();
   const currency = useAppCurrency();
 
@@ -80,13 +86,17 @@ export default function InvoicesPage() {
     }
   }
 
-  async function handleDelete(invoiceId: string, number: string) {
-    if (!window.confirm(`Delete ${number}? This can't be undone.`)) return;
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await deleteInvoice(invoiceId);
-      showToast(`${number} deleted.`);
+      await deleteInvoice(deleteTarget.id);
+      showToast(`${deleteTarget.number} deleted.`);
+      setDeleteTarget(null);
     } catch {
       showToast("Couldn't delete the invoice.", "error");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -135,7 +145,7 @@ export default function InvoicesPage() {
               aria-selected={status === filter.value}
               onClick={() => setStatus(filter.value)}
               className={cn(
-                "h-9 shrink-0 rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
+                "h-10 shrink-0 rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600",
                 status === filter.value
                   ? "bg-stone-950 text-white dark:bg-white dark:text-stone-950"
                   : "bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
@@ -215,7 +225,7 @@ export default function InvoicesPage() {
                   <div className="mt-2 flex justify-end gap-1 border-t border-stone-100 pt-2 dark:border-stone-800">
                     <Link
                       href={`/invoice/new?duplicate=${invoice.id}`}
-                      className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+                      className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
                       aria-label={`Duplicate ${invoice.invoiceNumber}`}
                     >
                       <Copy className="h-3.5 w-3.5" aria-hidden="true" />
@@ -225,7 +235,7 @@ export default function InvoicesPage() {
                       type="button"
                       onClick={() => handleMarkPaid(invoice.id)}
                       disabled={!payable || payingId === invoice.id}
-                      className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-stone-600 hover:bg-stone-100 disabled:opacity-50 dark:text-stone-300 dark:hover:bg-stone-800"
+                      className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 disabled:opacity-50 dark:text-stone-300 dark:hover:bg-stone-800"
                       aria-label={`Mark ${invoice.invoiceNumber} as paid`}
                     >
                       {payingId === invoice.id ? (
@@ -237,8 +247,8 @@ export default function InvoicesPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDelete(invoice.id, invoice.invoiceNumber)}
-                      className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-stone-600 hover:bg-red-50 hover:text-red-600 dark:text-stone-300 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                      onClick={() => setDeleteTarget({ id: invoice.id, number: invoice.invoiceNumber })}
+                      className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-red-50 hover:text-red-600 dark:text-stone-300 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                       aria-label={`Delete ${invoice.invoiceNumber}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -251,6 +261,19 @@ export default function InvoicesPage() {
           })}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onClose={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+        title={`Delete ${deleteTarget?.number ?? ""}?`}
+        confirmLabel="Yes, delete"
+        tone="danger"
+        busy={deleting}
+        onConfirm={() => void handleDelete()}
+        description="This permanently removes the invoice and its payment records from this device. This can't be undone."
+      />
     </div>
   );
 }
