@@ -1,15 +1,16 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Download, Loader2, Printer } from "lucide-react";
 import { useApp, useToast } from "@/lib/providers";
 import { getInvoice } from "@/lib/db/invoices";
 import { Button } from "@/components/common/button";
 import { EmptyState } from "@/components/common/empty-state";
 import { ReceiptDocument } from "@/components/invoice/receipt-document";
 import { triggerPrint } from "@/lib/print";
+import { generateReceiptPdf } from "@/lib/pdf";
 
 export default function ReceiptPage() {
   return (
@@ -33,6 +34,7 @@ function ReceiptView() {
 
   const { business, settings, hydrated } = useApp();
   const { showToast } = useToast();
+  const [busy, setBusy] = useState(false);
 
   const invoice = useLiveQuery(
     () => (invoiceId ? getInvoice(invoiceId) : Promise.resolve(undefined)),
@@ -45,6 +47,21 @@ function ReceiptView() {
         "We couldn't print the receipt. Try Print → Save as PDF.",
         "error"
       );
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!invoice) return;
+    setBusy(true);
+    try {
+      await generateReceiptPdf(invoice, business, settings);
+    } catch {
+      showToast(
+        "We couldn't generate the PDF. Try Print → Save as PDF.",
+        "error"
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -107,10 +124,20 @@ function ReceiptView() {
             {invoice.customerSnapshot.name || "Unknown customer"} · {invoice.invoiceNumber}
           </p>
         </div>
-        <Button size="sm" onClick={handlePrint}>
-          <Printer className="h-4 w-4" aria-hidden="true" />
-          Print / PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={handleDownloadPdf} disabled={busy}>
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Download className="h-4 w-4" aria-hidden="true" />
+            )}
+            Download PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="h-4 w-4" aria-hidden="true" />
+            Print
+          </Button>
+        </div>
       </header>
 
       <div className="mx-auto max-w-[820px]">

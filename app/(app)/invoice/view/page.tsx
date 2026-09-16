@@ -42,6 +42,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { InvoiceDocument } from "@/components/invoice/document";
 import { StatusBadge } from "@/components/invoice/status-badge";
 import { triggerPrint } from "@/lib/print";
+import { generateInvoicePdf } from "@/lib/pdf";
 import type { PaymentMethod } from "@/lib/types";
 
 const PAYMENT_METHODS: Array<{ value: PaymentMethod; label: string }> = [
@@ -87,7 +88,7 @@ function InvoiceView() {
   const [payMethod, setPayMethod] = useState<PaymentMethod>("upi");
   const [payReference, setPayReference] = useState("");
   const [payNote, setPayNote] = useState("");
-  const [busy, setBusy] = useState<"mark" | "record" | "delete" | "save" | null>(null);
+  const [busy, setBusy] = useState<"mark" | "record" | "delete" | "save" | "pdf" | null>(null);
 
   const status = useMemo(
     () => (invoice ? deriveInvoiceStatus(invoice) : undefined),
@@ -215,6 +216,20 @@ function InvoiceView() {
         "We couldn't generate the PDF. Try Print → Save as PDF.",
         "error"
       );
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    setBusy("pdf");
+    try {
+      await generateInvoicePdf(invoice, business, settings);
+    } catch {
+      showToast(
+        "We couldn't generate the PDF. Try Print → Save as PDF.",
+        "error"
+      );
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -384,17 +399,21 @@ function InvoiceView() {
                 Documents
               </CardTitle>
               <CardDescription>
-                Downloads through your device&apos;s Save as PDF, so what you
-                see is exactly what you get. Sharing arrives in the next
-                milestone.
+                Download a real PDF, or print a pixel-perfect copy from your
+                browser.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <Button
                 className="w-full justify-start"
-                onClick={handlePrint}
+                onClick={handleDownloadPdf}
+                disabled={busy === "pdf"}
               >
-                <Download className="h-4 w-4" aria-hidden="true" />
+                {busy === "pdf" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                )}
                 Download PDF
               </Button>
               <Button

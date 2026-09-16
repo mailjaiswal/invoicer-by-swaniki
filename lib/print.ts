@@ -1,7 +1,8 @@
 /**
- * Print / PDF helpers. The app renders one document component and lets the
- * browser print it at A4 (Print -> Save as PDF on most devices), so the
- * exported PDF matches the screen preview exactly — no second engine.
+ * Print helpers. Real PDFs are generated client-side with pdfmake (see
+ * `lib/pdf.ts`); this module still powers the Print button, which opens the
+ * browser's native print dialog (Print -> Save as PDF) so users have a
+ * pixel-perfect fallback for the exact on-screen document.
  */
 
 /** Whether the current browser can open the native print dialog. */
