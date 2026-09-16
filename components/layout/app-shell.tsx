@@ -20,6 +20,7 @@ import { Button } from "@/components/common/button";
 import { Sheet } from "@/components/common/sheet";
 import { ThemeToggleIcon } from "@/components/common/theme-toggle";
 import { OfflineBanner } from "@/components/layout/offline-banner";
+import { UpdateBanner } from "@/components/layout/update-banner";
 import { APP_NAME, PRIVACY_NOTE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col">
       <div className="print:hidden">
+        <UpdateBanner />
         <OfflineBanner />
       </div>
       <div className="flex flex-1">

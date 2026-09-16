@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Download, Upload, AlertTriangle, FlaskConical, Database } from "lucide-react";
+import { useRef, useState } from "react";
+import { Download, Upload, AlertTriangle, FlaskConical, Database, FileJson } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -10,7 +10,21 @@ import {
   CardTitle,
 } from "@/components/common/card";
 import { Button } from "@/components/common/button";
-import { db, now, saveSettings } from "@/lib/db/database";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import {
+  db,
+  clearAllData,
+  DataError,
+  now,
+  saveSettings,
+} from "@/lib/db/database";
+import { serializeBackup, importBackup } from "@/lib/db/backup";
+import {
+  downloadBackupFile,
+  parseBackup,
+  summarizeBackup,
+  type BackupFile,
+} from "@/lib/backup";
 import { useToast } from "@/lib/providers";
 import { calcInvoiceTotals, taxBreakupFromTotals } from "@/lib/calculations";
 import { uid } from "@/lib/utils";
@@ -24,47 +38,84 @@ import type {
   TaxType,
 } from "@/lib/types";
 
-const APP_VERSION = "0.1.0";
-
 export function DataSection() {
   const { showToast } = useToast();
   const [exporting, setExporting] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [pendingImport, setPendingImport] = useState<BackupFile | null>(null);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [demoloading, setDemoloading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isDev = process.env.NODE_ENV === "development";
 
   async function exportBackup() {
     setExporting(true);
     try {
-      const dump = await db.transaction("r", db.tables, async () => {
-        const result: Record<string, unknown> = {};
-        for (const table of db.tables) {
-          result[table.name] = await table.toArray();
-        }
-        return result;
-      });
-
-      const payload = {
-        app: "invoicer-by-swaniki",
-        version: APP_VERSION,
-        exportedAt: new Date().toISOString(),
-        data: dump,
-      };
-
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      const stamp = new Date().toISOString().slice(0, 10);
-      anchor.href = url;
-      anchor.download = `invoicer-backup-${stamp}.json`;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      const json = await serializeBackup();
+      downloadBackupFile(json);
       showToast("Backup exported to your device.", "success");
     } catch {
       showToast("Couldn't export the backup. Please try again.", "error");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function onPickFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setReading(true);
+    try {
+      const text = await file.text();
+      const parsed = parseBackup(text);
+      setPendingImport(parsed);
+    } catch (error) {
+      showToast(
+        error instanceof DataError
+          ? error.message
+          : "That file couldn't be read. Please try again.",
+        "error"
+      );
+    } finally {
+      setReading(false);
+    }
+  }
+
+  async function runImport(mode: "replace" | "merge") {
+    const file = pendingImport;
+    if (!file) return;
+    setImporting(true);
+    try {
+      const result = await importBackup(file, mode);
+      showToast(
+        mode === "replace"
+          ? `Backup restored — ${result.records} records.`
+          : `Backup merged — ${result.records} records added.`,
+        "success"
+      );
+      setPendingImport(null);
+      if (mode === "replace") window.location.reload();
+    } catch {
+      showToast("Couldn't import this backup. Please try again.", "error");
+      setPendingImport(null);
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function runClearAll() {
+    setClearing(true);
+    try {
+      await clearAllData();
+      showToast("All data cleared.", "success");
+      window.location.reload();
+    } catch {
+      showToast("Couldn't clear your data. Please try again.", "error");
+      setClearing(false);
     }
   }
 
@@ -92,28 +143,46 @@ export function DataSection() {
     }
   }
 
+  const summary = pendingImport ? summarizeBackup(pendingImport) : null;
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>Backup</CardTitle>
           <CardDescription>
-            Your data lives only on this device. Take a copy with you anytime.
+            Your data lives only on this device. Take a copy or bring it back
+            anytime.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button onClick={exportBackup} disabled={exporting} className="flex-1">
+            <Button onClick={exportBackup} disabled={exporting || reading} className="flex-1">
               <Download className="h-4 w-4" aria-hidden="true" />
               {exporting ? "Exporting…" : "Export Backup"}
             </Button>
-            <Button variant="secondary" disabled className="flex-1">
+            <Button
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={reading || exporting}
+              className="flex-1"
+            >
               <Upload className="h-4 w-4" aria-hidden="true" />
-              Import Backup
+              {reading ? "Reading…" : "Import Backup"}
             </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              aria-label="Choose a backup file"
+              onChange={onPickFile}
+            />
           </div>
-          <p className="text-xs text-stone-400 dark:text-stone-500">
-            Import and restore are coming in a later milestone.
+          <p className="flex items-start gap-1.5 text-xs text-stone-400 dark:text-stone-500">
+            <FileJson className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            Imports are validated before anything is written. Restore replaces
+            what is on this device; merge adds your backup on top.
           </p>
         </CardContent>
       </Card>
@@ -147,16 +216,85 @@ export function DataSection() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="destructive" disabled>
+          <Button variant="destructive" onClick={() => setClearOpen(true)}>
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             Clear All Data
           </Button>
           <p className="mt-2 flex items-center gap-1.5 text-xs text-stone-400 dark:text-stone-500">
             <Database className="h-3.5 w-3.5" aria-hidden="true" />
-            Available in a later milestone, with strong confirmation.
+            Consider exporting a backup first — storage is local only.
           </p>
         </CardContent>
       </Card>
+
+      {/* Import confirmation */}
+      <ConfirmDialog
+        open={pendingImport !== null}
+        onClose={() => {
+          if (!importing) setPendingImport(null);
+        }}
+        title="Import this backup?"
+        confirmLabel="Replace everything"
+        tone="danger"
+        busy={importing}
+        onConfirm={() => void runImport("replace")}
+      >
+        {summary && (
+          <div className="space-y-3">
+            <ul className="space-y-1.5 rounded-xl border border-stone-200 p-3 text-sm dark:border-stone-700">
+              {summary.overview.length === 0 && (
+                <li className="text-stone-500 dark:text-stone-400">
+                  No records found.
+                </li>
+              )}
+              {summary.overview.map((row) => (
+                <li
+                  key={row.label}
+                  className="flex items-center justify-between text-stone-600 dark:text-stone-300"
+                >
+                  <span>{row.label}</span>
+                  <span className="font-medium text-stone-900 dark:text-white">
+                    {row.count}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-stone-400 dark:text-stone-500">
+              Exported {new Date(summary.exportedAt).toLocaleDateString()}.
+              Replace wipes all current data first. Merge keeps it and adds this
+              backup on top.
+            </p>
+            <Button
+              variant="secondary"
+              className="w-full"
+              disabled={importing}
+              onClick={() => void runImport("merge")}
+            >
+              Merge into existing data instead
+            </Button>
+          </div>
+        )}
+      </ConfirmDialog>
+
+      {/* Clear-all confirmation */}
+      <ConfirmDialog
+        open={clearOpen}
+        onClose={() => {
+          if (!clearing) setClearOpen(false);
+        }}
+        title="Erase everything?"
+        confirmLabel="Yes, erase everything"
+        tone="danger"
+        busy={clearing}
+        onConfirm={() => void runClearAll()}
+      >
+        <p>
+          This permanently deletes every invoice, customer, product, payment
+          and setting on this device. Invoicer stores data only on this device
+          — there is no cloud copy. Export a backup first if you might need any
+          of this again.
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }
