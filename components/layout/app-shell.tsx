@@ -54,10 +54,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-svh flex-col">
-      <OfflineBanner />
+      <div className="print:hidden">
+        <OfflineBanner />
+      </div>
       <div className="flex flex-1">
         {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900 lg:flex">
+        <aside className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900 lg:flex print:hidden">
           <div className="px-5 pb-4 pt-6">
             <Link href="/home" aria-label={`${APP_NAME} home`}>
               <BrandLogo variant="full" />
@@ -120,7 +122,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile bottom nav */}
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 backdrop-blur dark:border-stone-800 dark:bg-stone-900/95 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 backdrop-blur dark:border-stone-800 dark:bg-stone-900/95 lg:hidden print:hidden"
       >
         <div className="mx-auto grid h-16 max-w-md grid-cols-5 px-2">
           <NavLink href="/home" label="Home" icon={Home} active={isActive("/home")} />

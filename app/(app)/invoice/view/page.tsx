@@ -7,8 +7,10 @@ import {
   ArrowLeft,
   CheckCircle2,
   Copy,
+  Download,
   FilePlus2,
   Loader2,
+  Printer,
   Trash2,
   UserCheck,
 } from "lucide-react";
@@ -39,6 +41,7 @@ import { Sheet } from "@/components/common/sheet";
 import { EmptyState } from "@/components/common/empty-state";
 import { InvoiceDocument } from "@/components/invoice/document";
 import { StatusBadge } from "@/components/invoice/status-badge";
+import { triggerPrint } from "@/lib/print";
 import type { PaymentMethod } from "@/lib/types";
 
 const PAYMENT_METHODS: Array<{ value: PaymentMethod; label: string }> = [
@@ -206,12 +209,21 @@ function InvoiceView() {
     }
   };
 
+  const handlePrint = () => {
+    if (!triggerPrint()) {
+      showToast(
+        "We couldn't generate the PDF. Try Print → Save as PDF.",
+        "error"
+      );
+    }
+  };
+
   const canMarkPaid =
     status === "unpaid" || status === "partial" || status === "overdue";
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-center gap-3">
+      <header className="flex flex-wrap items-center gap-3 print:hidden">
         <button
           type="button"
           onClick={() => router.push("/invoices")}
@@ -253,7 +265,7 @@ function InvoiceView() {
       </header>
 
       {!invoice.customerId && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-900 dark:bg-brand-900/30">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-900 dark:bg-brand-900/30 print:hidden">
           <p className="text-sm text-stone-700 dark:text-stone-300">
             This customer isn’t saved yet. Add them to your list for faster
             invoices next time.
@@ -281,7 +293,7 @@ function InvoiceView() {
           status={status}
         />
 
-        <aside className="space-y-4 lg:sticky lg:top-4">
+        <aside className="space-y-4 lg:sticky lg:top-4 print:hidden">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -368,14 +380,41 @@ function InvoiceView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FilePlus2 className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
-                Actions
+                <Printer className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+                Documents
               </CardTitle>
               <CardDescription>
-                PDF download and sharing arrive in a later milestone.
+                Downloads through your device&apos;s Save as PDF, so what you
+                see is exactly what you get. Sharing arrives in the next
+                milestone.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
+              <Button
+                className="w-full justify-start"
+                onClick={handlePrint}
+              >
+                <Download className="h-4 w-4" aria-hidden="true" />
+                Download PDF
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handlePrint}
+              >
+                <Printer className="h-4 w-4" aria-hidden="true" />
+                Print
+              </Button>
+              {invoice.payment.amountPaid > 0 && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push(`/invoice/receipt?id=${invoice.id}`)}
+                >
+                  <FilePlus2 className="h-4 w-4" aria-hidden="true" />
+                  Generate receipt
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="w-full justify-start"

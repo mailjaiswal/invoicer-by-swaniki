@@ -44,7 +44,7 @@ export function InvoiceDocument({
 
   return (
     <div className={cn(className)}>
-      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white text-stone-900 shadow-sm ring-1 ring-stone-900/5">
+      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white text-stone-900 shadow-sm ring-1 ring-stone-900/5 print:overflow-visible print:rounded-none print:border-0 print:shadow-none print:ring-0">
         <div className="flex flex-col gap-6 p-6 sm:p-8">
           {/* Header */}
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">

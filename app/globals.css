@@ -59,6 +59,33 @@
   }
 }
 
+/* Print / PDF output. The app prints a single always-white document at A4 so
+   the exported PDF matches the on-screen preview. */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  main > div {
+    max-width: none !important;
+  }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
