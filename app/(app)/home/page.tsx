@@ -20,6 +20,7 @@ import {
   TrendingUp,
   CheckCircle2,
   ChevronRight,
+  BellRing,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -45,6 +46,13 @@ export default function HomePage() {
     .reduce((sum, payment) => sum + payment.amount, 0);
 
   const recent = invoices.slice(0, 5);
+
+  const outstandingInvoices = invoices
+    .filter((inv) => {
+      const st = deriveInvoiceStatus(inv, now);
+      return st !== "paid" && inv.payment.balance > 0;
+    })
+    .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"));
 
   return (
     <div className="space-y-8">
@@ -101,6 +109,63 @@ export default function HomePage() {
           hint={collectedThisMonth === 0 ? "No payments yet" : "This month"}
         />
       </section>
+
+      {/* Outstanding invoices */}
+      {outstanding > 0 && (
+        <section aria-labelledby="outstanding-heading" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2
+              id="outstanding-heading"
+              className="font-display text-lg font-bold tracking-tight text-stone-950 dark:text-white"
+            >
+              Outstanding
+            </h2>
+            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+              {outstandingInvoices.length}
+            </span>
+          </div>
+          <Card>
+            <CardContent className="divide-y divide-stone-100 p-2 dark:divide-stone-800">
+              {outstandingInvoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex items-center gap-3 px-3 py-2.5"
+                >
+                  <Link
+                    href={`/invoice/view?id=${inv.id}`}
+                    className="min-w-0 flex-1 rounded-xl"
+                  >
+                    <span className="block truncate text-sm font-semibold text-stone-900 hover:text-brand-700 dark:text-white dark:hover:text-brand-300">
+                      {inv.invoiceNumber}
+                    </span>
+                    <span className="block truncate text-xs text-stone-500 dark:text-stone-400">
+                      {inv.customerSnapshot.name || "Unknown customer"}
+                      {inv.dueDate ? ` · Due ${formatDate(inv.dueDate)}` : ""}
+                    </span>
+                  </Link>
+                  <StatusBadge
+                    status={deriveInvoiceStatus(inv, now)}
+                    className="hidden sm:inline-flex"
+                  />
+                  <span className="shrink-0 text-sm font-semibold text-stone-900 dark:text-white">
+                    {formatMoney(inv.payment.balance, currency)}
+                  </span>
+                  <Link
+                    href={`/invoice/view?id=${inv.id}&reminder=1`}
+                    title="Send reminder"
+                    className="shrink-0 rounded-lg p-2 text-stone-400 hover:bg-stone-100 hover:text-brand-600 dark:hover:bg-stone-800 dark:hover:text-brand-300"
+                  >
+                    <BellRing className="h-4 w-4" aria-hidden="true" />
+                    <span className="sr-only">
+                      Send reminder for {inv.invoiceNumber}
+                    </span>
+                  </Link>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Recent invoices */}
       <section aria-labelledby="recent-heading" className="space-y-3">

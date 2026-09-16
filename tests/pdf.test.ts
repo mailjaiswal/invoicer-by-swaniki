@@ -168,4 +168,29 @@ describe("pdfmake document definitions", () => {
     const bytes = await renderPdf(buildInvoiceDocDef(invoice));
     expect(bytes).toBeGreaterThan(1000);
   }, 15000);
+
+  it("renders an invoice with a UPI QR option", async () => {
+    const invoice = sampleInvoice();
+    const bytes = await renderPdf(
+      buildInvoiceDocDef(invoice, {
+        id: "biz",
+        name: "Swaniki Studio",
+        email: "hi@swaniki.example",
+        phone: "+91 90000 00000",
+        address: "14th Cross, Indiranagar, Bengaluru",
+        gstin: "29ABCDE1234F1Z5",
+        upiId: "swaniki@oksbi",
+        showUpiQr: true,
+        createdAt: 0,
+        updatedAt: 0,
+      },
+      undefined,
+      { upiQrDataUrl: PNG_1PX }
+      )
+    );
+    expect(bytes).toBeGreaterThan(1000);
+  }, 15000);
 });
+
+const PNG_1PX =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";

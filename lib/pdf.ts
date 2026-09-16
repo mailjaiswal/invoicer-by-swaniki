@@ -8,6 +8,8 @@ import type {
 import { formatDate, formatMoney } from "@/lib/formatting";
 import { taxLabel } from "@/lib/calculations";
 import { buildReceiptNumber } from "@/lib/print";
+import { buildUpiUrl, isValidUpiId } from "@/lib/upi";
+import QRCode from "qrcode";
 
 type PdfMakeModule = typeof import("pdfmake/build/pdfmake").default;
 
@@ -120,6 +122,7 @@ export function buildInvoiceDocDef(
   invoice: Invoice,
   business?: Business,
   settings?: AppSettings,
+  options: { upiQrDataUrl?: string } = {},
 ): Record<string, unknown> {
   const currency = settings?.currency ?? "INR";
   const money = (amount: number) => formatMoney(amount, currency);
@@ -368,8 +371,54 @@ export function buildInvoiceDocDef(
             },
           ]
         : []),
+
+      ...(options?.upiQrDataUrl && business?.upiId
+        ? [
+            {
+              image: options.upiQrDataUrl,
+              width: 120,
+              height: 120,
+              alignment: "center",
+              margin: margin(22, 0, 0),
+            },
+            {
+              text: `Pay via UPI: ${business.upiId}`,
+              alignment: "center",
+              fontSize: 8,
+              color: MUTED,
+              margin: margin(4, 0, 0),
+            },
+          ]
+        : []),
     ],
   };
+}
+
+/**
+ * Build a local UPI QR for an invoice when the business has enabled it.
+ * Encodes the UPI ID, payee name, invoice amount and reference; returns
+ * undefined when UPI isn't configured or enabled (spec §19).
+ */
+export async function buildUpiQrDataUrl(
+  invoice: Invoice,
+  business?: Business,
+): Promise<string | undefined> {
+  const upiId = business?.upiId?.trim();
+  if (!business?.showUpiQr || !upiId || !isValidUpiId(upiId)) return undefined;
+  const note = invoice.invoiceNumber
+    ? `Invoice ${invoice.invoiceNumber}`
+    : undefined;
+  const url = buildUpiUrl({
+    id: upiId,
+    name: business.name,
+    amount: invoice.total,
+    note,
+  });
+  try {
+    return await QRCode.toDataURL(url, { width: 240, margin: 1 });
+  } catch {
+    return undefined;
+  }
 }
 
 /** Generate and trigger a download of the invoice PDF. */
@@ -379,9 +428,33 @@ export async function generateInvoicePdf(
   settings?: AppSettings,
 ): Promise<void> {
   const pdfMake = await getPdfMake();
+  const upiQrDataUrl = await buildUpiQrDataUrl(invoice, business);
   pdfMake
-    .createPdf(buildInvoiceDocDef(invoice, business, settings))
+    .createPdf(buildInvoiceDocDef(invoice, business, settings, { upiQrDataUrl }))
     .download(buildPdfFileName(invoice.invoiceNumber || "Preview"));
+}
+
+export interface InvoicePdfFile {
+  blob: Blob;
+  name: string;
+}
+
+/**
+ * Render the invoice PDF to an in-memory Blob (no download), so it can be
+ * attached to a native share sheet or re-used elsewhere.
+ */
+export async function renderInvoicePdfFile(
+  invoice: Invoice,
+  business?: Business,
+  settings?: AppSettings,
+): Promise<InvoicePdfFile> {
+  const pdfMake = await getPdfMake();
+  const upiQrDataUrl = await buildUpiQrDataUrl(invoice, business);
+  const name = buildPdfFileName(invoice.invoiceNumber || "Preview");
+  const blob = await pdfMake
+    .createPdf(buildInvoiceDocDef(invoice, business, settings, { upiQrDataUrl }))
+    .getBlob();
+  return { blob, name };
 }
 
 /** Build the pdfmake document definition for a payment receipt (pure). */

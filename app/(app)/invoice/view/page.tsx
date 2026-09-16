@@ -5,12 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowLeft,
+  BellRing,
   CheckCircle2,
   Copy,
   Download,
   FilePlus2,
   Loader2,
+  MessageCircle,
   Printer,
+  QrCode,
+  Share2,
   Trash2,
   UserCheck,
 } from "lucide-react";
@@ -42,7 +46,15 @@ import { EmptyState } from "@/components/common/empty-state";
 import { InvoiceDocument } from "@/components/invoice/document";
 import { StatusBadge } from "@/components/invoice/status-badge";
 import { triggerPrint } from "@/lib/print";
-import { generateInvoicePdf } from "@/lib/pdf";
+import { generateInvoicePdf, renderInvoicePdfFile } from "@/lib/pdf";
+import {
+  buildInvoiceMessage,
+  canNativeShare,
+  shareNative,
+} from "@/lib/share";
+import { buildUpiUrl, isValidUpiId } from "@/lib/upi";
+import { MessageSheet } from "@/components/invoice/message-sheet";
+import { UpiQr } from "@/components/invoice/upi-qr";
 import type { PaymentMethod } from "@/lib/types";
 
 const PAYMENT_METHODS: Array<{ value: PaymentMethod; label: string }> = [
@@ -88,12 +100,38 @@ function InvoiceView() {
   const [payMethod, setPayMethod] = useState<PaymentMethod>("upi");
   const [payReference, setPayReference] = useState("");
   const [payNote, setPayNote] = useState("");
-  const [busy, setBusy] = useState<"mark" | "record" | "delete" | "save" | "pdf" | null>(null);
+  const [busy, setBusy] = useState<
+    "mark" | "record" | "delete" | "save" | "pdf" | "share" | null
+  >(null);
+  const [composerMode, setComposerMode] = useState<"invoice" | "reminder">(
+    () => (searchParams.get("reminder") === "1" ? "reminder" : "invoice")
+  );
+  const [composerOpen, setComposerOpen] = useState(
+    () => searchParams.get("reminder") === "1"
+  );
+  const [qrSheetOpen, setQrSheetOpen] = useState(false);
 
   const status = useMemo(
     () => (invoice ? deriveInvoiceStatus(invoice) : undefined),
     [invoice]
   );
+
+  const upiQrValue = useMemo(
+    () =>
+      invoice && business?.upiId?.trim() && isValidUpiId(business.upiId)
+        ? buildUpiUrl({
+            id: business.upiId.trim(),
+            name: business.name,
+            amount: invoice.total,
+            note: invoice.invoiceNumber
+              ? `Invoice ${invoice.invoiceNumber}`
+              : undefined,
+          })
+        : "",
+    [invoice, business]
+  );
+
+  const upiEnabled = upiQrValue !== "";
 
   if (!hydrated) {
     return (
@@ -235,6 +273,50 @@ function InvoiceView() {
 
   const canMarkPaid =
     status === "unpaid" || status === "partial" || status === "overdue";
+
+  const openComposer = (mode: "invoice" | "reminder") => {
+    setComposerMode(mode);
+    setComposerOpen(true);
+  };
+
+  const handleShare = async () => {
+    if (busy === "share") return;
+    if (!canNativeShare()) {
+      openComposer("invoice");
+      return;
+    }
+    setBusy("share");
+    try {
+      const { blob, name } = await renderInvoicePdfFile(
+        invoice,
+        business,
+        settings
+      );
+      const file = new File([blob], name, { type: "application/pdf" });
+      const message = buildInvoiceMessage("short", {
+        customerName: invoice.customerSnapshot.name?.trim() || "there",
+        invoiceNumber: invoice.invoiceNumber,
+        amount: money(invoice.total),
+        dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : undefined,
+        businessName: business?.name,
+      });
+      const shared = await shareNative({
+        title: `Invoice ${invoice.invoiceNumber}`,
+        text: message,
+        file,
+      });
+      if (!shared) {
+        showToast("Sharing was cancelled.", "error");
+      }
+    } catch {
+      showToast(
+        "We couldn't generate the PDF for sharing. Try WhatsApp instead.",
+        "error"
+      );
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -391,6 +473,60 @@ function InvoiceView() {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Share2 className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+                Share &amp; Get Paid
+              </CardTitle>
+              <CardDescription>
+                Send a prefilled message, share the PDF, or let them pay you via
+                UPI.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button
+                className="w-full justify-start"
+                onClick={handleShare}
+                disabled={busy === "share"}
+              >
+                {busy === "share" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Share2 className="h-4 w-4" aria-hidden="true" />
+                )}
+                Share
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => openComposer("invoice")}
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => openComposer("reminder")}
+                disabled={invoice.payment.balance <= 0}
+              >
+                <BellRing className="h-4 w-4" aria-hidden="true" />
+                Send reminder
+              </Button>
+              {upiEnabled && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setQrSheetOpen(true)}
+                >
+                  <QrCode className="h-4 w-4" aria-hidden="true" />
+                  Payment QR
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -573,6 +709,37 @@ function InvoiceView() {
               Delete
             </Button>
           </div>
+        </div>
+      </Sheet>
+
+      <MessageSheet
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        mode={composerMode}
+        invoice={invoice}
+        business={business}
+        settings={settings}
+      />
+
+      <Sheet
+        open={qrSheetOpen}
+        onClose={() => setQrSheetOpen(false)}
+        title="Pay via UPI"
+        description={`Scan to pay ${money(invoice.total)} for ${invoice.invoiceNumber}`}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <UpiQr value={upiQrValue} size={184} label={business?.upiId} />
+          <p className="text-center text-xs text-stone-400 dark:text-stone-500">
+            Scan with any UPI app. Payment success isn&apos;t verified
+            automatically — record the payment here once it arrives.
+          </p>
+          <a
+            href={upiQrValue}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800"
+          >
+            <QrCode className="h-4 w-4" aria-hidden="true" />
+            Open UPI app
+          </a>
         </div>
       </Sheet>
     </div>

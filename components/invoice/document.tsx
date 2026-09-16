@@ -1,9 +1,11 @@
 import { formatMoney } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
 import { taxLabel } from "@/lib/calculations";
+import { buildUpiUrl, isValidUpiId } from "@/lib/upi";
 import type { AppSettings, Business, InvoiceStatus } from "@/lib/types";
 import type { Invoice, InvoiceDraft } from "@/lib/types";
 import { StatusBadge } from "./status-badge";
+import { UpiQr } from "./upi-qr";
 
 interface InvoiceDocumentProps {
   business?: Business;
@@ -34,6 +36,18 @@ export function InvoiceDocument({
   const number = previewNumber || invoice.invoiceNumber;
 
   const { cgst, sgst, igst } = invoice.taxBreakup;
+  const upiId = business?.upiId?.trim();
+  const useUpiQr = !!upiId && !!business?.showUpiQr && isValidUpiId(upiId);
+  const upiQrValue = useUpiQr
+    ? buildUpiUrl({
+        id: upiId,
+        name: business?.name,
+        amount: invoice.total,
+        note: invoice.invoiceNumber
+          ? `Invoice ${invoice.invoiceNumber}`
+          : undefined,
+      })
+    : "";
   const taxRows: Array<{ label: string; amount: number }> = [];
   if (cgst) taxRows.push({ label: "CGST", amount: cgst });
   if (sgst) taxRows.push({ label: "SGST", amount: sgst });
@@ -269,7 +283,16 @@ export function InvoiceDocument({
               Generated with Invoicer by Swaniki · free, offline &
               privacy-first
             </p>
-            {!!business?.upiId?.trim() && (
+            {useUpiQr && (
+              <div className="mt-3 flex flex-col items-center gap-2">
+                <UpiQr
+                  value={upiQrValue}
+                  size={96}
+                  label={`Pay via UPI: ${business.upiId}`}
+                />
+              </div>
+            )}
+            {!!business?.upiId?.trim() && !useUpiQr && (
               <p className="mt-1">Pay via UPI: {business.upiId}</p>
             )}
           </div>
