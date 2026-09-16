@@ -5,6 +5,8 @@ export interface BankDetails {
   bankName?: string;
 }
 
+export type LogoPosition = "left" | "center" | "right" | "none";
+
 export interface Business {
   id: string;
   name: string;
@@ -20,6 +22,7 @@ export interface Business {
   additionalInfo?: string;
   showUpiQr?: boolean;
   paymentInstructions?: string;
+  logoPosition?: LogoPosition;
   createdAt: number;
   updatedAt: number;
 }

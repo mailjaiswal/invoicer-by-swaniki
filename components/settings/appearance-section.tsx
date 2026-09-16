@@ -1,6 +1,6 @@
 "use client";
 
-import { MonitorCog } from "lucide-react";
+import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import {
   Card,
@@ -9,34 +9,232 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/common/card";
+import { Select } from "@/components/common/select";
+import { Input } from "@/components/common/input";
+import { useApp, useToast } from "@/lib/providers";
+import {
+  ACCENT_COLOR_SWATCHES,
+  DEFAULT_ACCENT_COLOR,
+  INVOICE_PERSONALITIES,
+  INVOICE_TEMPLATES,
+  LOGO_POSITIONS,
+} from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import type { InvoicePersonality, InvoiceTemplateId } from "@/lib/types";
+import type { LogoPosition } from "@/lib/constants";
 
 export function AppearanceSection() {
+  const { business, settings, updateBusiness, updateSettings } = useApp();
+  const { showToast } = useToast();
+
+  const template = (INVOICE_TEMPLATES.some(
+    (t) => t.id === settings?.defaultTemplate
+  )
+    ? settings?.defaultTemplate
+    : "modern") as InvoiceTemplateId;
+  const personality =
+    settings?.personality ?? "professional";
+  const accent = settings?.accentColor || DEFAULT_ACCENT_COLOR;
+  const logoPosition = business?.logoPosition || "left";
+
+  const setTemplate = (value: string) => {
+    const id = value as InvoiceTemplateId;
+    if (!INVOICE_TEMPLATES.some((t) => t.id === id)) return;
+    updateSettings({ defaultTemplate: id })
+      .then(() => showToast("Invoice template saved.", "success"))
+      .catch(() => showToast("Couldn't save the template.", "error"));
+  };
+
+  const setPersonality = (value: string) => {
+    const id = value as InvoicePersonality;
+    if (!INVOICE_PERSONALITIES.some((p) => p.id === id)) return;
+    updateSettings({ personality: id })
+      .then(() => showToast("Invoice style saved.", "success"))
+      .catch(() => showToast("Couldn't save the style.", "error"));
+  };
+
+  const setAccent = (color: string) => {
+    updateSettings({ accentColor: color })
+      .then(() => showToast("Accent color saved.", "success"))
+      .catch(() => showToast("Couldn't save the accent color.", "error"));
+  };
+
+  const setLogoPosition = (value: string) => {
+    const id = value as LogoPosition;
+    if (!LOGO_POSITIONS.some((p) => p.id === id)) return;
+    updateBusiness({ logoPosition: id })
+      .then(() => showToast("Logo placement saved.", "success"))
+      .catch(() => showToast("Couldn't save the logo placement.", "error"));
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Appearance</CardTitle>
-        <CardDescription>
-          Pick how Invoicer by Swaniki looks on this device. Invoices and PDFs
-          always use a professional white document background.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
-            <MonitorCog className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-stone-900 dark:text-white">Theme</p>
-            <p className="text-sm text-stone-500 dark:text-stone-400">
-              Follow your device or pick one.
-            </p>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MonitorCog className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            App theme
+          </CardTitle>
+          <CardDescription>
+            How Invoicer by Swaniki looks on this device. Invoices and PDFs
+            always use a clean white document background.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ThemeToggle />
+          <p className="text-xs text-stone-400 dark:text-stone-500">
+            Your theme preference is stored on this device only.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LayoutTemplate className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Invoice template
+          </CardTitle>
+          <CardDescription>
+            The layout used for new invoices — previewed live in the builder.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Select value={template} onChange={(e) => setTemplate(e.target.value)} aria-label="Invoice template">
+            {INVOICE_TEMPLATES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </Select>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {INVOICE_TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTemplate(t.id)}
+                aria-pressed={template === t.id}
+                className={cn(
+                  "rounded-xl border p-3 text-left transition-colors",
+                  template === t.id
+                    ? "border-brand-600 bg-brand-50 dark:border-brand-500 dark:bg-brand-900/30"
+                    : "border-stone-200 hover:border-stone-300 dark:border-stone-700 dark:hover:border-stone-600"
+                )}
+              >
+                <p className="text-sm font-semibold text-stone-900 dark:text-white">
+                  {t.label}
+                </p>
+                <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+                  {t.blurb}
+                </p>
+              </button>
+            ))}
           </div>
-        </div>
-        <ThemeToggle />
-        <p className="text-xs text-stone-400 dark:text-stone-500">
-          Your theme preference is stored on this device only.
-        </p>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Accent color
+          </CardTitle>
+          <CardDescription>
+            Used for headings, highlights and the PDF — with a restrained
+            palette so invoices stay professional.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {ACCENT_COLOR_SWATCHES.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setAccent(color)}
+                aria-label={`Use accent ${color}`}
+                aria-pressed={accent.toLowerCase() === color}
+                className={cn(
+                  "h-9 w-9 rounded-full ring-offset-2 transition-transform hover:scale-105 dark:ring-offset-stone-900",
+                  accent.toLowerCase() === color
+                    ? "ring-2 ring-brand-600"
+                    : "ring-1 ring-stone-300 dark:ring-stone-600"
+                )}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+            <label className="ml-1 flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400">
+              <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-1 ring-stone-300 dark:ring-stone-600">
+                <Input
+                  type="color"
+                  value={accent}
+                  onChange={(e) => setAccent(e.target.value)}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  aria-label="Pick a custom accent color"
+                />
+                <span
+                  className="h-full w-full"
+                  style={{ backgroundColor: accent }}
+                />
+              </span>
+              Custom
+            </label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Logo placement
+          </CardTitle>
+          <CardDescription>
+            Where your logo appears on invoices and PDFs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Select
+            value={logoPosition}
+            onChange={(e) => setLogoPosition(e.target.value)}
+            aria-label="Logo placement"
+          >
+            {LOGO_POSITIONS.map((pos) => (
+              <option key={pos.id} value={pos.id}>
+                {pos.label}
+              </option>
+            ))}
+          </Select>
+          {!business?.logo && logoPosition !== "none" && (
+            <p className="text-xs text-stone-400 dark:text-stone-500">
+              You haven&apos;t uploaded a logo yet — add one in the Business
+              tab and it will appear here.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MonitorCog className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Invoice style
+          </CardTitle>
+          <CardDescription>
+            A light tone-lift applied on top of the template.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Select value={personality} onChange={(e) => setPersonality(e.target.value)} aria-label="Invoice style">
+            {INVOICE_PERSONALITIES.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </Select>
+          <p className="text-xs text-stone-400 dark:text-stone-500">
+            {INVOICE_PERSONALITIES.find((p) => p.id === personality)?.blurb}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -117,6 +117,20 @@ function card(stack: unknown[]) {
   };
 }
 
+/** Card border without the fill — used by the Classic template. */
+function cardFlat(stack: unknown[]) {
+  return {
+    table: {
+      widths: ["*"],
+      body: [[{ stack }]],
+    },
+    layout: {
+      ...CARD_LAYOUT,
+      fillColor: () => null,
+    },
+  };
+}
+
 /** Build the pdfmake document definition for an invoice (pure, renderable). */
 export function buildInvoiceDocDef(
   invoice: Invoice,
@@ -128,6 +142,18 @@ export function buildInvoiceDocDef(
   const money = (amount: number) => formatMoney(amount, currency);
   const number = invoice.invoiceNumber || "Preview";
   const status = invoice.status ?? "draft";
+
+  const template = settings?.defaultTemplate ?? "modern";
+  const isClassic = template === "classic";
+  const isCompact = template === "compact";
+  const personality = settings?.personality ?? "professional";
+  const isMinimal = personality === "minimal";
+  const isFriendly = personality === "friendly";
+  const brand = settings?.accentColor?.trim() || BRAND;
+  const logoPosition = business?.logoPosition ?? "left";
+  const logo =
+    business?.logo && logoPosition !== "none" ? business.logo : undefined;
+  const moneyFont = isCompact ? 9 : 10;
 
   const taxRows: Array<{ label: string; amount: number }> = [];
   if (invoice.taxBreakup.cgst)
@@ -158,7 +184,7 @@ export function buildInvoiceDocDef(
     { label: "Total", value: money(invoice.total), bold: true },
     ...(invoice.payment.amountPaid > 0
       ? [
-          { label: "Amount paid", value: money(invoice.payment.amountPaid), color: BRAND },
+          { label: "Amount paid", value: money(invoice.payment.amountPaid), color: brand },
           { label: "Balance due", value: money(invoice.payment.balance), bold: true },
         ]
       : []),
@@ -166,7 +192,9 @@ export function buildInvoiceDocDef(
 
   return {
     pageSize: "A4",
-    pageMargins: [36, 36, 36, 32] as [number, number, number, number],
+    pageMargins: (isCompact || isMinimal
+      ? [24, 24, 24, 28]
+      : [36, 36, 36, 32]) as [number, number, number, number],
     info: {
       title: `Invoice ${number}`,
       author: business?.name || "Invoicer by Swaniki",
@@ -174,20 +202,34 @@ export function buildInvoiceDocDef(
     },
     defaultStyle: { fontSize: 9, color: INK },
     content: [
+      ...(logo && (logoPosition === "center" || logoPosition === "right")
+        ? [
+            {
+              image: logo,
+              fit: [110, 48],
+              alignment: logoPosition === "right" ? "right" : "center",
+              margin: margin(0, 0, 14),
+            },
+          ]
+        : []),
+
       {
         columns: [
           {
             width: "*",
             stack: [
+              ...(logo && logoPosition === "left"
+                ? [{ image: logo, fit: [110, 48], margin: margin(0, 0, 6) }]
+                : []),
               {
                 text: business?.name?.trim() || "Your Business",
-                fontSize: 18,
+                fontSize: isCompact ? 14 : 18,
                 bold: true,
                 color: INK,
               },
               {
                 text: business?.address?.trim() || " ",
-                fontSize: 8.5,
+                fontSize: isCompact ? 7.5 : 8.5,
                 lineHeight: 1.35,
                 color: MUTED,
                 margin: margin(3, 0, 0),
@@ -202,26 +244,39 @@ export function buildInvoiceDocDef(
             ],
           },
           {
-            width: 170,
+            width: isCompact ? 150 : 170,
             stack: [
-              { text: "INVOICE", fontSize: 22, bold: true, color: BRAND, alignment: "right" },
-              { text: number, fontSize: 11, bold: true, alignment: "right", margin: margin(3, 0, 0) },
+              {
+                text: "INVOICE",
+                fontSize: isCompact ? 14 : 22,
+                bold: true,
+                color: brand,
+                alignment: "right",
+                characterSpacing: isClassic ? 1.4 : 0,
+              },
+              {
+                text: number,
+                fontSize: isCompact ? 10 : 11,
+                bold: true,
+                alignment: "right",
+                margin: margin(3, 0, 0),
+              },
               {
                 text: `Issued: ${invoice.invoiceDate ? formatDate(invoice.invoiceDate) : "—"}`,
-                fontSize: 8.5,
+                fontSize: isCompact ? 8 : 8.5,
                 color: MUTED,
                 alignment: "right",
-                margin: margin(7, 0, 1),
+                margin: margin(6, 0, 1),
               },
               {
                 text: `Due: ${invoice.dueDate ? formatDate(invoice.dueDate) : "—"}`,
-                fontSize: 8.5,
+                fontSize: isCompact ? 8 : 8.5,
                 color: MUTED,
                 alignment: "right",
               },
               {
                 text: (STATUS_LABELS[status] ?? "Draft").toUpperCase(),
-                fontSize: 8.5,
+                fontSize: isCompact ? 8 : 8.5,
                 bold: true,
                 color: STATUS_COLORS[status] ?? STATUS_COLORS.draft,
                 alignment: "right",
@@ -230,16 +285,35 @@ export function buildInvoiceDocDef(
             ],
           },
         ],
-        columnGap: 16,
-        margin: margin(0, 0, 18),
+        columnGap: isCompact ? 12 : 16,
+        margin: margin(0, 0, isCompact ? 10 : 18),
       },
 
+      ...(isClassic
+        ? [
+            {
+              canvas: [
+                {
+                  type: "line",
+                  x1: 0,
+                  y1: 0,
+                  x2: 519,
+                  y2: 0,
+                  lineWidth: 1,
+                  lineColor: brand,
+                },
+              ],
+              margin: margin(0, 0, 18),
+            },
+          ]
+        : []),
+
       {
-        ...card([
+        ...(isClassic ? cardFlat : card)([
           sectionLabel("BILLED TO"),
           {
             text: invoice.customerSnapshot.name || "Customer",
-            fontSize: 10,
+            fontSize: moneyFont,
             bold: true,
             color: INK,
           },
@@ -372,6 +446,18 @@ export function buildInvoiceDocDef(
           ]
         : []),
 
+      ...(isFriendly
+        ? [
+            {
+              text: "Thank you for your business!",
+              alignment: "center",
+              color: brand,
+              fontSize: 9,
+              margin: margin(18, 0, 2),
+            },
+          ]
+        : []),
+
       ...(options?.upiQrDataUrl && business?.upiId
         ? [
             {
@@ -466,6 +552,7 @@ export function buildReceiptDocDef(
   const currency = settings?.currency ?? "INR";
   const money = (amount: number) => formatMoney(amount, currency);
   const receiptNumber = buildReceiptNumber(invoice.invoiceNumber);
+  const brand = settings?.accentColor?.trim() || BRAND;
   const amountReceived = invoice.payment.amountPaid;
   const paidAt = invoice.payment.paidAt ? new Date(invoice.payment.paidAt) : null;
   const methodLabel = invoice.payment.method
@@ -506,7 +593,7 @@ export function buildReceiptDocDef(
           {
             width: 170,
             stack: [
-              { text: "RECEIPT", fontSize: 22, bold: true, color: BRAND, alignment: "right" },
+              { text: "RECEIPT", fontSize: 22, bold: true, color: brand, alignment: "right" },
               { text: receiptNumber, fontSize: 11, bold: true, alignment: "right", margin: margin(3, 0, 0) },
               ...(paidAt
                 ? [
@@ -553,7 +640,7 @@ export function buildReceiptDocDef(
             width: "*",
             stack: [
               sectionLabel("AMOUNT RECEIVED"),
-              { text: money(amountReceived), fontSize: 22, bold: true, color: BRAND },
+              { text: money(amountReceived), fontSize: 22, bold: true, color: brand },
               { text: `via ${methodLabel}`, fontSize: 8.5, color: MUTED, margin: margin(3, 0, 0) },
             ],
             margin: margin(0, 0, 0, 16),

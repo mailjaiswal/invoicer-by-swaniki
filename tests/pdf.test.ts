@@ -190,6 +190,125 @@ describe("pdfmake document definitions", () => {
     );
     expect(bytes).toBeGreaterThan(1000);
   }, 15000);
+
+  it("renders the Classic template with accent color", async () => {
+    const invoice = sampleInvoice();
+    const bytes = await renderPdf(
+      buildInvoiceDocDef(
+        invoice,
+        {
+          id: "biz",
+          name: "Swaniki Studio",
+          email: "hi@swaniki.example",
+          phone: "+91 90000 00000",
+          address: "14th Cross, Indiranagar, Bengaluru",
+          gstin: "29ABCDE1234F1Z5",
+          upiId: "swaniki@oksbi",
+          createdAt: 0,
+          updatedAt: 0,
+        },
+        {
+          id: "settings",
+          invoicePrefix: "INV",
+          nextInvoiceNumber: 2,
+          invoiceNumberPadding: 4,
+          currency: "INR",
+          taxMode: "gst",
+          defaultTax: null,
+          defaultTerms: "",
+          defaultTemplate: "classic",
+          defaultPaymentTermsDays: 15,
+          theme: "light",
+          accentColor: "#2563eb",
+          personality: "professional",
+          createdAt: 0,
+          updatedAt: 0,
+        },
+        { upiQrDataUrl: PNG_1PX }
+      )
+    );
+    expect(bytes).toBeGreaterThan(1000);
+  }, 15000);
+
+  it("renders the Compact template with a logo and friendly personality", async () => {
+    const invoice = sampleInvoice();
+    const bytes = await renderPdf(
+      buildInvoiceDocDef(
+        invoice,
+        {
+          id: "biz",
+          name: "Swaniki Studio",
+          email: "hi@swaniki.example",
+          phone: "+91 90000 00000",
+          address: "14th Cross, Indiranagar, Bengaluru",
+          gstin: "29ABCDE1234F1Z5",
+          upiId: "swaniki@oksbi",
+          logo: PNG_1PX,
+          logoPosition: "left",
+          createdAt: 0,
+          updatedAt: 0,
+        },
+        {
+          id: "settings",
+          invoicePrefix: "INV",
+          nextInvoiceNumber: 2,
+          invoiceNumberPadding: 4,
+          currency: "INR",
+          taxMode: "gst",
+          defaultTax: null,
+          defaultTerms: "",
+          defaultTemplate: "compact",
+          defaultPaymentTermsDays: 15,
+          theme: "light",
+          accentColor: "#b45309",
+          personality: "friendly",
+          createdAt: 0,
+          updatedAt: 0,
+        }
+      )
+    );
+    expect(bytes).toBeGreaterThan(1000);
+  }, 15000);
+
+  it("renders the Classic template with a centred logo and accent", async () => {
+    const invoice = sampleInvoice();
+    const bytes = await renderPdf(
+      buildInvoiceDocDef(
+        invoice,
+        {
+          id: "biz",
+          name: "Swaniki Studio",
+          email: "hi@swaniki.example",
+          phone: "+91 90000 00000",
+          address: "14th Cross, Indiranagar, Bengaluru",
+          gstin: "29ABCDE1234F1Z5",
+          upiId: "swaniki@oksbi",
+          logo: PNG_1PX,
+          logoPosition: "center",
+          createdAt: 0,
+          updatedAt: 0,
+        },
+        {
+          id: "settings",
+          invoicePrefix: "INV",
+          nextInvoiceNumber: 2,
+          invoiceNumberPadding: 4,
+          currency: "INR",
+          taxMode: "gst",
+          defaultTax: null,
+          defaultTerms: "",
+          defaultTemplate: "classic",
+          defaultPaymentTermsDays: 15,
+          theme: "light",
+          accentColor: "#dc2626",
+          personality: "minimal",
+          createdAt: 0,
+          updatedAt: 0,
+        }
+      )
+    );
+    expect(bytes).toBeGreaterThan(1000);
+  }, 15000);
 });
 
 const PNG_1PX =
