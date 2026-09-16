@@ -97,3 +97,11 @@ export async function upsertProduct(
   await db.products.put(record);
   return record;
 }
+
+export async function deleteCustomer(id: string): Promise<void> {
+  await db.customers.delete(id);
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  await db.products.delete(id);
+}
