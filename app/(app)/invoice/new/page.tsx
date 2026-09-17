@@ -22,12 +22,15 @@ export default function NewInvoicePage() {
 function BuilderRoute() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") === "quick" ? "quick" : "standard";
+  const docType =
+    searchParams.get("type") === "quotation" ? "quotation" : "invoice";
   const duplicateId = searchParams.get("duplicate");
   const editId = searchParams.get("edit");
 
   return (
     <InvoiceBuilder
       mode={mode}
+      docType={docType}
       duplicateId={duplicateId}
       editId={editId}
     />

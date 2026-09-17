@@ -3,13 +3,14 @@
    Offline strategy: precache the app shell (every route), then cache
    everything else on first use. Bump VERSION to invalidate clients. */
 
-const VERSION = "v1.0.0-m14";
+const VERSION = "v1.0.0-m15";
 const CACHE = `invoicer-swaniki-${VERSION}`;
 
 const SHELL = [
   "/",
   "/home",
   "/invoices",
+  "/quotations",
   "/customers",
   "/products",
   "/settings",

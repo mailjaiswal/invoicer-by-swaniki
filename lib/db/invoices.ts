@@ -14,6 +14,7 @@ import {
 } from "@/lib/invoice-numbering";
 import type {
   CustomerDraft,
+  DocType,
   Invoice,
   InvoiceDraft,
   InvoiceItem,
@@ -52,13 +53,18 @@ export async function createInvoice(
     [db.settings, db.invoices, db.customers],
     async () => {
       const settings = (await getSettings())!;
+      const isQuotation = draft.docType === "quotation";
       const manualValue = options.manualNumber?.trim();
       let invoiceNumber: string;
+      const prefix = isQuotation
+        ? settings.quotationPrefix || "QOT"
+        : settings.invoicePrefix;
+      const counterField = isQuotation ? "nextQuotationNumber" : "nextInvoiceNumber";
 
       if (manualValue) {
         if (!isValidInvoiceNumberFormat(manualValue)) {
           throw new DataError(
-            "That invoice number isn't valid. Use letters, numbers and simple separators."
+            "That number isn't valid. Use letters, numbers and simple separators."
           );
         }
         const duplicate = await db.invoices
@@ -67,23 +73,26 @@ export async function createInvoice(
           .first();
         if (duplicate) {
           throw new DataError(
-            `Invoice number ${manualValue} is already in use.`
+            `Document number ${manualValue} is already in use.`
           );
         }
         invoiceNumber = manualValue;
         const seed = parseInvoiceNumberSeed(manualValue);
-        if (seed !== null && seed >= settings.nextInvoiceNumber) {
-          settings.nextInvoiceNumber = seed + 1;
+        if (
+          seed !== null &&
+          seed >= (settings[counterField] ?? 1)
+        ) {
+          settings[counterField] = seed + 1;
           settings.updatedAt = now();
           await db.settings.put(settings);
         }
       } else {
         invoiceNumber = formatInvoiceNumber(
-          settings.invoicePrefix,
-          settings.nextInvoiceNumber,
+          prefix,
+          settings[counterField] ?? 1,
           settings.invoiceNumberPadding
         );
-        settings.nextInvoiceNumber += 1;
+        settings[counterField] = (settings[counterField] ?? 1) + 1;
         settings.updatedAt = now();
         await db.settings.put(settings);
       }
@@ -104,12 +113,14 @@ export async function createInvoice(
       const timestamp = now();
       const invoice: Invoice = {
         id: uid("inv"),
+        docType: isQuotation ? "quotation" : "invoice",
         invoiceNumber,
         customerId,
         customerSnapshot: draft.customerSnapshot,
         items,
         invoiceDate: draft.invoiceDate,
-        dueDate: draft.dueDate || null,
+        dueDate: isQuotation ? null : draft.dueDate || null,
+        validityDate: isQuotation ? draft.validityDate || null : null,
         subtotal: calc.totals.subtotal,
         discount: calc.totals.discount,
         taxMode: draft.taxMode,
@@ -194,12 +205,15 @@ export async function saveInvoiceDraft(
 
   const draftInvoice: Invoice = {
     id: existingId ?? uid("inv"),
+    docType: draft.docType ?? "invoice",
     invoiceNumber,
     customerId: options.customerId ?? draft.customerId ?? null,
     customerSnapshot: draft.customerSnapshot ?? { name: "" },
     items,
     invoiceDate: draft.invoiceDate || formatDateInput(new Date()),
-    dueDate: draft.dueDate || null,
+    dueDate: draft.docType === "quotation" ? null : draft.dueDate || null,
+    validityDate:
+      draft.docType === "quotation" ? draft.validityDate || null : null,
     subtotal: calc.totals.subtotal,
     discount: calc.totals.discount,
     taxMode: draft.taxMode,
@@ -224,7 +238,19 @@ export async function saveInvoiceDraft(
 }
 
 export function listInvoices(): Promise<Invoice[]> {
-  return db.invoices.orderBy("createdAt").reverse().toArray();
+  return db.invoices
+    .orderBy("createdAt")
+    .reverse()
+    .filter((inv) => inv.docType !== "quotation")
+    .toArray();
+}
+
+export function listQuotations(): Promise<Invoice[]> {
+  return db.invoices
+    .orderBy("createdAt")
+    .reverse()
+    .filter((inv) => inv.docType === "quotation")
+    .toArray();
 }
 
 export async function updateInvoiceRecord(
@@ -265,6 +291,9 @@ export async function recordPayment(
   return db.transaction("rw", [db.invoices, db.payments], async () => {
     const invoice = await db.invoices.get(invoiceId);
     if (!invoice) throw new DataError("Invoice not found.");
+    if (invoice.docType === "quotation") {
+      throw new DataError("Quotations can't have payments recorded.");
+    }
 
     const amountPaid = round2(Math.min(invoice.total, invoice.payment.amountPaid + amount));
     const balance = round2(invoice.total - amountPaid);
@@ -323,7 +352,8 @@ export async function markInvoicePaid(
 
 /** Build a fresh draft from an existing invoice (Duplicate in the builder). */
 export async function duplicateInvoiceToDraft(
-  invoiceId: string
+  invoiceId: string,
+  forType?: DocType
 ): Promise<InvoiceDraft> {
   const invoice = await db.invoices.get(invoiceId);
   if (!invoice) throw new DataError("Invoice not found.");
@@ -331,13 +361,17 @@ export async function duplicateInvoiceToDraft(
   const days = settings?.defaultPaymentTermsDays ?? 0;
   const invoiceDate = formatDateInput(new Date());
   const due = new Date(Date.now() + days * 86_400_000);
+  const targetType = forType ?? (invoice.docType === "quotation" ? "quotation" : "invoice");
   return {
+    docType: targetType,
     invoiceNumber: "",
     customerId: invoice.customerId,
     customerSnapshot: { ...invoice.customerSnapshot },
     items: invoice.items.map((item) => ({ ...item, id: uid("item") })),
     invoiceDate,
-    dueDate: formatDateInput(due),
+    dueDate: targetType === "quotation" ? null : formatDateInput(due),
+    validityDate:
+      targetType === "quotation" ? formatDateInput(due) : null,
     subtotal: invoice.subtotal,
     discount: invoice.discount,
     taxMode: invoice.taxMode,

@@ -62,12 +62,20 @@ export function MessageSheet({
     const isReminder =
       mode === "reminder" ||
       (balance > 0 && deriveInvoiceStatus(invoice) !== "paid");
+    const isQuotation = invoice.docType === "quotation";
     const ctx: MessageContext = {
       customerName: invoice.customerSnapshot.name?.trim() || "there",
       invoiceNumber: invoice.invoiceNumber,
       amount: money(isReminder && balance > 0 ? balance : invoice.total),
-      dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : undefined,
+      dueDate: (isQuotation
+        ? invoice.validityDate ?? invoice.dueDate
+        : invoice.dueDate)
+        ? formatDate(
+            (isQuotation ? invoice.validityDate ?? invoice.dueDate : invoice.dueDate) ?? ""
+          )
+        : undefined,
       businessName: business?.name,
+      docWord: isQuotation ? "quotation" : "invoice",
     };
     return mode === "reminder"
       ? buildReminderMessage(

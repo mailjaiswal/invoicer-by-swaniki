@@ -67,6 +67,8 @@ export type CurrencyCode = keyof typeof CURRENCIES;
 export const DEFAULT_SETTINGS = {
   invoicePrefix: "INV",
   nextInvoiceNumber: 1,
+  quotationPrefix: "QOT",
+  nextQuotationNumber: 1,
   currency: "INR",
   taxMode: "none",
   defaultTax: null,

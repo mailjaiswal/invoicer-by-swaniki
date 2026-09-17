@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowLeft,
+  ArrowRightLeft,
   BellRing,
   CheckCircle2,
   Copy,
@@ -116,9 +117,14 @@ function InvoiceView() {
     [invoice]
   );
 
+  const isQuotation = !!invoice && invoice.docType === "quotation";
+
   const upiQrValue = useMemo(
     () =>
-      invoice && business?.upiId?.trim() && isValidUpiId(business.upiId)
+      invoice &&
+      !isQuotation &&
+      business?.upiId?.trim() &&
+      isValidUpiId(business.upiId)
         ? buildUpiUrl({
             id: business.upiId.trim(),
             name: business.name,
@@ -128,7 +134,7 @@ function InvoiceView() {
               : undefined,
           })
         : "",
-    [invoice, business]
+    [invoice, business, isQuotation]
   );
 
   const upiEnabled = upiQrValue !== "";
@@ -145,7 +151,7 @@ function InvoiceView() {
   if (!invoice) {
     return (
       <EmptyState
-        title="Invoice not found"
+        title="Document not found"
         description="It may have been deleted from this device."
         action={
           <Button variant="secondary" onClick={() => router.push("/invoices")}>
@@ -222,7 +228,7 @@ function InvoiceView() {
       await deleteInvoice(invoice.id);
       setConfirmDeleteOpen(false);
       showToast(`${invoice.invoiceNumber} deleted.`);
-      router.replace("/invoices");
+      router.replace(isQuotation ? "/quotations" : "/invoices");
     } catch {
       showToast("Couldn't delete the invoice.", "error");
       setBusy(null);
@@ -297,11 +303,20 @@ function InvoiceView() {
         customerName: invoice.customerSnapshot.name?.trim() || "there",
         invoiceNumber: invoice.invoiceNumber,
         amount: money(invoice.total),
-        dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : undefined,
+        dueDate: (isQuotation
+          ? invoice.validityDate ?? invoice.dueDate
+          : invoice.dueDate)
+          ? formatDate(
+              (isQuotation
+                ? invoice.validityDate ?? invoice.dueDate
+                : invoice.dueDate) ?? ""
+            )
+          : undefined,
         businessName: business?.name,
+        docWord: isQuotation ? "quotation" : "invoice",
       });
       const shared = await shareNative({
-        title: `Invoice ${invoice.invoiceNumber}`,
+        title: `${isQuotation ? "Quotation" : "Invoice"} ${invoice.invoiceNumber}`,
         text: message,
         file,
       });
@@ -323,9 +338,9 @@ function InvoiceView() {
       <header className="flex flex-wrap items-center gap-3 print:hidden">
         <button
           type="button"
-          onClick={() => router.push("/invoices")}
+          onClick={() => router.push(isQuotation ? "/quotations" : "/invoices")}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-stone-500 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800"
-          aria-label="Back to invoices"
+          aria-label={isQuotation ? "Back to quotations" : "Back to invoices"}
         >
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -334,18 +349,25 @@ function InvoiceView() {
             <h1 className="truncate font-display text-2xl font-bold tracking-tight text-stone-950 dark:text-white">
               {invoice.invoiceNumber}
             </h1>
-            {status && <StatusBadge status={status} />}
+            {status && !isQuotation && <StatusBadge status={status} />}
           </div>
           <p className="mt-0.5 truncate text-sm text-stone-500 dark:text-stone-400">
             {invoice.customerSnapshot.name || "Unknown customer"} · Issued{" "}
             {formatDate(invoice.invoiceDate)}
+            {isQuotation && invoice.validityDate
+              ? ` · Valid until ${formatDate(invoice.validityDate)}`
+              : ""}
           </p>
         </div>
         <div className="flex w-full gap-2 sm:w-auto">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push(`/invoice/new?duplicate=${invoice.id}`)}
+            onClick={() =>
+              router.push(
+                `/invoice/new?duplicate=${invoice.id}&type=${isQuotation ? "quotation" : "invoice"}`
+              )
+            }
           >
             <Copy className="h-4 w-4" aria-hidden="true" />
             Duplicate
@@ -391,7 +413,30 @@ function InvoiceView() {
         />
 
         <aside className="space-y-4 lg:sticky lg:top-4 print:hidden">
-          <Card>
+          {isQuotation ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowRightLeft className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+                  Ready to invoice?
+                </CardTitle>
+                <CardDescription>
+                  The customer accepted this quotation — copy it into a new
+                  invoice with fresh dates and a number.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  className="w-full justify-start"
+                  onClick={() => router.push(`/invoice/new?duplicate=${invoice.id}&type=invoice`)}
+                >
+                  <ArrowRightLeft className="h-4 w-4" aria-hidden="true" />
+                  Convert to invoice
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
@@ -446,6 +491,7 @@ function InvoiceView() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {(invoice.notes?.trim() || invoice.terms?.trim()) && (
             <Card>
@@ -478,11 +524,12 @@ function InvoiceView() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Share2 className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
-                Share &amp; Get Paid
+                {isQuotation ? "Share" : "Share &amp; Get Paid"}
               </CardTitle>
               <CardDescription>
-                Send a prefilled message, share the PDF, or let them pay you via
-                UPI.
+                {isQuotation
+                  ? "Send the quotation as a prefilled message or share the PDF."
+                  : "Send a prefilled message, share the PDF, or let them pay you via UPI."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -506,24 +553,28 @@ function InvoiceView() {
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
                 WhatsApp
               </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => openComposer("reminder")}
-                disabled={invoice.payment.balance <= 0}
-              >
-                <BellRing className="h-4 w-4" aria-hidden="true" />
-                Send reminder
-              </Button>
-              {upiEnabled && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setQrSheetOpen(true)}
-                >
-                  <QrCode className="h-4 w-4" aria-hidden="true" />
-                  Payment QR
-                </Button>
+              {!isQuotation && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => openComposer("reminder")}
+                    disabled={invoice.payment.balance <= 0}
+                  >
+                    <BellRing className="h-4 w-4" aria-hidden="true" />
+                    Send reminder
+                  </Button>
+                  {upiEnabled && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => setQrSheetOpen(true)}
+                    >
+                      <QrCode className="h-4 w-4" aria-hidden="true" />
+                      Payment QR
+                    </Button>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -550,7 +601,7 @@ function InvoiceView() {
                 ) : (
                   <Download className="h-4 w-4" aria-hidden="true" />
                 )}
-                Download PDF
+                Download {isQuotation ? "quotation" : "PDF"}
               </Button>
               <Button
                 variant="outline"
@@ -560,7 +611,7 @@ function InvoiceView() {
                 <Printer className="h-4 w-4" aria-hidden="true" />
                 Print
               </Button>
-              {invoice.payment.amountPaid > 0 && (
+              {!isQuotation && invoice.payment.amountPaid > 0 && (
                 <Button
                   variant="outline"
                   className="w-full justify-start"
@@ -573,7 +624,11 @@ function InvoiceView() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => router.push(`/invoice/new?duplicate=${invoice.id}`)}
+                onClick={() =>
+                  router.push(
+                    `/invoice/new?duplicate=${invoice.id}&type=${isQuotation ? "quotation" : "invoice"}`
+                  )
+                }
               >
                 <Copy className="h-4 w-4" aria-hidden="true" />
                 Create a copy
@@ -677,8 +732,8 @@ function InvoiceView() {
       <Sheet
         open={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}
-        title="Delete this invoice?"
-        description="This deletes the invoice and its payment records from this device. This can't be undone."
+        title={isQuotation ? "Delete this quotation?" : "Delete this invoice?"}
+        description={`This deletes the ${isQuotation ? "quotation" : "invoice"} and its payment records from this device. This can't be undone.`}
       >
         <div className="space-y-3">
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">

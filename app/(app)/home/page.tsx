@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   ChevronRight,
   BellRing,
+  ScrollText,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -71,7 +72,14 @@ export default function HomePage() {
       </header>
 
       {/* Primary actions */}
-      <section aria-label="Create invoice" className="grid gap-3 sm:grid-cols-2">
+      <section aria-label="Create document" className="grid gap-3 sm:grid-cols-3">
+        <Link
+          href="/invoice/new?type=quotation"
+          className="flex h-16 items-center justify-center gap-2 rounded-2xl border border-brand-300 bg-brand-50 text-brand-800 shadow-sm transition-colors hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-brand-700 dark:bg-brand-900/40 dark:text-brand-200 dark:hover:bg-brand-900/60 dark:focus-visible:ring-offset-stone-950"
+        >
+          <ScrollText className="h-5 w-5" aria-hidden="true" />
+          <span className="text-base font-semibold">New Quotation</span>
+        </Link>
         <Link
           href="/invoice/new"
           className="flex h-16 items-center justify-center gap-2 rounded-2xl bg-brand-700 text-white shadow-sm transition-colors hover:bg-brand-800 active:bg-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-950"

@@ -75,6 +75,8 @@ export function defaultSettings(): AppSettings {
     invoicePrefix: DEFAULT_SETTINGS.invoicePrefix,
     nextInvoiceNumber: DEFAULT_SETTINGS.nextInvoiceNumber,
     invoiceNumberPadding: 4,
+    quotationPrefix: DEFAULT_SETTINGS.quotationPrefix,
+    nextQuotationNumber: DEFAULT_SETTINGS.nextQuotationNumber,
     currency: DEFAULT_SETTINGS.currency,
     taxMode: DEFAULT_SETTINGS.taxMode,
     defaultTax: DEFAULT_SETTINGS.defaultTax,

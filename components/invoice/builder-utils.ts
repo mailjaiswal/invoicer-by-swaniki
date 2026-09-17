@@ -1,6 +1,7 @@
 import { uid, formatDateInput } from "@/lib/utils";
 import type {
   AppSettings,
+  DocType,
   InvoiceDraft,
   Product,
   TaxType,
@@ -30,12 +31,16 @@ export interface BuilderCustomer {
 }
 
 export interface BuilderState {
+  docType: DocType;
   invoiceNumber: string;
   customerId: string | null;
   customer: BuilderCustomer;
   items: BuilderLine[];
   invoiceDate: string;
+  /** Invoice-only: payment due date. */
   dueDate: string;
+  /** Quotation-only: last date the quoted price is valid. */
+  validityDate: string;
   notes: string;
   terms: string;
   saveCustomer: boolean;
@@ -124,17 +129,22 @@ export function syncLineFromProduct(
   };
 }
 
-export function emptyDraft(settings?: AppSettings | null): BuilderState {
+export function emptyDraft(
+  settings?: AppSettings | null,
+  type: DocType = "invoice"
+): BuilderState {
   const days = settings?.defaultPaymentTermsDays ?? 0;
   const today = formatDateInput(new Date());
   const due = formatDateInput(new Date(Date.now() + days * 86_400_000));
   return {
+    docType: type,
     invoiceNumber: "",
     customerId: null,
     customer: { name: "", company: "", email: "", phone: "" },
     items: [blankLine(settings, 1)],
     invoiceDate: today,
-    dueDate: due,
+    dueDate: type === "quotation" ? "" : due,
+    validityDate: type === "quotation" ? due : "",
     notes: "",
     terms: settings?.defaultTerms ?? "",
     saveCustomer: true,
@@ -148,7 +158,9 @@ export function stateFromInvoice(
 ): BuilderState {
   const days = settings?.defaultPaymentTermsDays ?? 0;
   const freshDates = opts.freshDates !== false;
+  const docType: DocType = draft.docType === "quotation" ? "quotation" : "invoice";
   return {
+    docType,
     invoiceNumber: "",
     customerId: draft.customerId ?? null,
     customer: {
@@ -174,17 +186,29 @@ export function stateFromInvoice(
     invoiceDate: freshDates
       ? formatDateInput(new Date())
       : draft.invoiceDate,
-    dueDate: freshDates
-      ? formatDateInput(new Date(Date.now() + days * 86_400_000))
-      : draft.dueDate ?? "",
+    dueDate: docType === "quotation"
+      ? ""
+      : freshDates
+        ? formatDateInput(new Date(Date.now() + days * 86_400_000))
+        : draft.dueDate ?? "",
+    validityDate: docType === "quotation"
+      ? freshDates
+        ? formatDateInput(new Date(Date.now() + days * 86_400_000))
+        : draft.validityDate ?? ""
+      : "",
     notes: draft.notes ?? "",
     terms: draft.terms ?? "",
     saveCustomer: true,
   };
 }
 
-export function draftKeyFor(mode: "quick" | "standard"): string {
-  return `invoicer:draft:${mode === "quick" ? "quick" : "standard"}`;
+export function draftKeyFor(
+  mode: "quick" | "standard",
+  type: DocType = "invoice"
+): string {
+  const modeSeg = mode === "quick" ? "quick" : "standard";
+  const typeSeg = type === "quotation" ? "quotation" : "invoice";
+  return `invoicer:draft:${typeSeg}:${modeSeg}`;
 }
 
 function num(value: unknown): number {
@@ -230,6 +254,7 @@ export function normalizeBuilderState(
     }));
 
   return {
+    docType: r.docType === "quotation" ? ("quotation" as const) : ("invoice" as const),
     invoiceNumber: str(r.invoiceNumber),
     customerId: str(r.customerId) || null,
     customer: {
@@ -241,6 +266,7 @@ export function normalizeBuilderState(
     items: items.length > 0 ? items : [blankLine(settings, 1)],
     invoiceDate: str(r.invoiceDate),
     dueDate: str(r.dueDate),
+    validityDate: str(r.validityDate),
     notes: str(r.notes),
     terms: str(r.terms),
     saveCustomer: typeof r.saveCustomer === "boolean" ? r.saveCustomer : true,

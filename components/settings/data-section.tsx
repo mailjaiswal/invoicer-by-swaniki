@@ -525,6 +525,7 @@ function demoInvoice({
   const state = payment?.status ?? "unpaid";
   return {
     id: uid("inv"),
+    docType: "invoice",
     invoiceNumber: number,
     customerId: customer.id,
     customerSnapshot: {

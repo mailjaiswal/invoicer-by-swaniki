@@ -1,4 +1,5 @@
 import type {
+  DocType,
   InvoiceStatus,
   PaymentMethod,
   TaxBreakup,
@@ -41,12 +42,15 @@ export interface PaymentDetails {
 
 export interface Invoice {
   id: string;
+  docType: DocType;
   invoiceNumber: string;
   customerId?: string | null;
   customerSnapshot: CustomerSnapshot;
   items: InvoiceItem[];
   invoiceDate: string;
   dueDate?: string | null;
+  /** Quotation-only: last date the quoted price is valid (vs dueDate). */
+  validityDate?: string | null;
   subtotal: number;
   discount: number;
   taxMode: TaxMode;

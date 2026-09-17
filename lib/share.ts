@@ -35,6 +35,8 @@ export interface MessageContext {
   amount: string;
   dueDate?: string;
   businessName?: string;
+  /** Document word for the message copy; "invoice" by default, "quotation" for quotations. */
+  docWord?: string;
 }
 
 /** First word of a name, used for a warm greeting, e.g. "Raj" from "Raj Sharma". */
@@ -53,23 +55,24 @@ export function buildInvoiceMessage(
   ctx: MessageContext,
 ): string {
   const firstName = customerFirstName(ctx.customerName);
+  const word = ctx.docWord ?? "invoice";
   const due = ctx.dueDate ? ` It is due by ${ctx.dueDate}.` : "";
   switch (style) {
     case "professional":
       return (
         `Dear ${firstName},\n\n` +
-        `Your invoice ${ctx.invoiceNumber} for ${ctx.amount} is ready.` +
+        `Your ${word} ${ctx.invoiceNumber} for ${ctx.amount} is ready.` +
         `${due}\n\nThank you for your business.${sign(ctx.businessName)}`
       );
     case "friendly":
       return (
         `Hi ${firstName}! 👋\n\n` +
-        `Your invoice ${ctx.invoiceNumber} for ${ctx.amount} is ready.` +
+        `Your ${word} ${ctx.invoiceNumber} for ${ctx.amount} is ready.` +
         `${due}\n\nThanks a lot${sign(ctx.businessName)}`
       );
     case "short":
       return (
-        `Invoice ${ctx.invoiceNumber} for ${ctx.amount}.` +
+        `${word.charAt(0).toUpperCase() + word.slice(1)} ${ctx.invoiceNumber} for ${ctx.amount}.` +
         `${due.split(" It is")[1] ?? ""}${sign(ctx.businessName)}`
       );
   }

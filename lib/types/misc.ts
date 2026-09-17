@@ -12,6 +12,8 @@ export type InvoiceStatus =
   | "paid"
   | "overdue";
 
+export type DocType = "invoice" | "quotation";
+
 export type PaymentMethod = "upi" | "bank_transfer" | "cash" | "other";
 
 export type TaxType = "none" | "gst_cgst_sgst" | "gst_igst" | "percentage";

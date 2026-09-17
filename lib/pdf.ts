@@ -223,6 +223,8 @@ export function buildInvoiceDocDef(
   const status = invoice.status ?? "draft";
 
   const template = settings?.defaultTemplate ?? "modern";
+  const isQuotation = invoice.docType === "quotation";
+  const docTitle = isQuotation ? "QUOTATION" : "INVOICE";
   const isClassic = template === "classic";
   const isCompact = template === "compact";
   const isMinimal = template === "minimal";
@@ -337,7 +339,7 @@ export function buildInvoiceDocDef(
     pageOrientation: orientation === "landscape" ? "landscape" : "portrait",
     pageMargins,
     info: {
-      title: `Invoice ${number}`,
+      title: `${isQuotation ? "Quotation" : "Invoice"} ${number}`,
       author: business?.name || "Invoicer by Swaniki",
       subject: invoice.customerSnapshot.name || undefined,
     },
@@ -389,7 +391,7 @@ export function buildInvoiceDocDef(
             width: isCompact ? 150 : isElegant ? 120 : 170,
             stack: [
               {
-                text: "INVOICE",
+                text: docTitle,
                 fontSize: invoiceTitleSize,
                 bold: true,
                 color: isBold ? brand : isElegant ? MUTED : brand,
@@ -412,19 +414,27 @@ export function buildInvoiceDocDef(
                 margin: margin(6, 0, 1),
               },
               {
-                text: `Due: ${invoice.dueDate ? formatDate(invoice.dueDate) : "—"}`,
+                text: `${isQuotation ? "Valid until" : "Due"}: ${
+                  (isQuotation ? invoice.validityDate : invoice.dueDate)
+                    ? formatDate((isQuotation ? invoice.validityDate : invoice.dueDate) ?? "")
+                    : "—"
+                }`,
                 fontSize: isCompact ? 8 : 8.5,
                 color: MUTED,
                 alignment: "right",
               },
-              {
-                text: (STATUS_LABELS[status] ?? "Draft").toUpperCase(),
-                fontSize: isCompact ? 8 : 8.5,
-                bold: true,
-                color: STATUS_COLORS[status] ?? STATUS_COLORS.draft,
-                alignment: "right",
-                margin: margin(8, 0, 0),
-              },
+              ...(!isQuotation
+                ? [
+                    {
+                      text: (STATUS_LABELS[status] ?? "Draft").toUpperCase(),
+                      fontSize: isCompact ? 8 : 8.5,
+                      bold: true,
+                      color: STATUS_COLORS[status] ?? STATUS_COLORS.draft,
+                      alignment: "right",
+                      margin: margin(8, 0, 0),
+                    },
+                  ]
+                : []),
             ],
           },
         ],
@@ -461,7 +471,7 @@ export function buildInvoiceDocDef(
           widths: ["*", 32, 74, 62, 44, 84],
           body: [
             [
-              { text: "Description", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
+              { text: "Particulars", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
               { text: "Qty", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
               { text: "Rate", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
               { text: "Tax", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
@@ -469,25 +479,36 @@ export function buildInvoiceDocDef(
               { text: "Amount", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
             ],
             ...invoice.items.map((item) => [
-              (() => {
-                const subtitle = [
-                  item.description?.trim(),
-                  item.comments?.trim(),
-                ]
-                  .filter((line): line is string => !!line)
-                  .map((line) => line.replace(/\s+/g, " ").trim())
-                  .join(" · ");
-                const full = subtitle
-                  ? `${item.name || "Untitled item"} — ${subtitle}`
-                  : item.name || "Untitled item";
-                return {
-                  text: full.length > 110 ? `${full.slice(0, 110)}…` : full,
-                  noWrap: true,
-                  fontSize: 8.5,
-                  lineHeight: 1.3,
-                  color: INK,
-                };
-              })(),
+              {
+                stack: [
+                  {
+                    text: item.name || "Untitled item",
+                    bold: true,
+                    fontSize: 8.5,
+                    lineHeight: 1.3,
+                    color: INK,
+                  },
+                  ...(item.description?.trim()
+                    ? [{
+                        text: item.description.replace(/\s+/g, " ").trim(),
+                        fontSize: 7.5,
+                        lineHeight: 1.35,
+                        color: MUTED,
+                        margin: margin(1, 0, 0),
+                      }]
+                    : []),
+                  ...(item.comments?.trim()
+                    ? [{
+                        text: item.comments.replace(/\s+/g, " ").trim(),
+                        fontSize: 7.5,
+                        lineHeight: 1.35,
+                        italics: true,
+                        color: MUTED,
+                        margin: margin(1, 0, 0),
+                      }]
+                    : []),
+                ],
+              },
               {
                 text: `${trimNumber(item.quantity)}${item.unit ? ` ${item.unit}` : ""}`,
                 alignment: "right",
@@ -594,7 +615,7 @@ export function buildInvoiceDocDef(
           ]
         : []),
 
-      ...(options?.upiQrDataUrl && business?.upiId
+      ...(options?.upiQrDataUrl && !isQuotation && business?.upiId
         ? [
             {
               image: options.upiQrDataUrl,
@@ -641,7 +662,13 @@ export async function buildUpiQrDataUrl(
   business?: Business,
 ): Promise<string | undefined> {
   const upiId = business?.upiId?.trim();
-  if (!business?.showUpiQr || !upiId || !isValidUpiId(upiId)) return undefined;
+  if (
+    invoice.docType === "quotation" ||
+    !business?.showUpiQr ||
+    !upiId ||
+    !isValidUpiId(upiId)
+  )
+    return undefined;
   const note = invoice.invoiceNumber
     ? `Invoice ${invoice.invoiceNumber}`
     : undefined;

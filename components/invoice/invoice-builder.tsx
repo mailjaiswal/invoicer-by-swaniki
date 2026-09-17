@@ -54,16 +54,18 @@ import {
   syncLineFromProduct,
   type BuilderState,
 } from "./builder-utils";
-import type { InvoiceDraft, InvoiceItem } from "@/lib/types";
+import type { DocType, InvoiceDraft, InvoiceItem } from "@/lib/types";
 
 interface InvoiceBuilderProps {
   mode: "quick" | "standard";
+  docType?: DocType;
   duplicateId?: string | null;
   editId?: string | null;
 }
 
 export function InvoiceBuilder({
   mode,
+  docType = "invoice",
   duplicateId,
   editId,
 }: InvoiceBuilderProps) {
@@ -71,6 +73,7 @@ export function InvoiceBuilder({
   const { business, settings } = useApp();
   const currency = useAppCurrency();
   const { showToast } = useToast();
+  const isQuotation = docType === "quotation";
 
   const customers = useLiveQuery(() => listCustomers(), []) ?? [];
   const productsLive = useLiveQuery(() => listProducts(), []);
@@ -90,7 +93,7 @@ export function InvoiceBuilder({
   >("fresh");
 
   const skipAutosave = Boolean(editId);
-  const draftKey = draftKeyFor(mode);
+  const draftKey = draftKeyFor(mode, docType);
 
   /* Load initial data once (draft restore, duplicate prefill, or edit). */
   useEffect(() => {
@@ -99,10 +102,11 @@ export function InvoiceBuilder({
       const appSettings = (await getSettings()) ?? undefined;
       if (cancelled) return;
 
-      const presetFromDates = (invoiceDate: string, dueDate: string) => {
-        if (!invoiceDate || !dueDate) return "custom";
+      const presetFromDates = (invoiceDate: string, dateA: string, dateB: string) => {
+        const target = isQuotation ? dateA : dateB;
+        if (!invoiceDate || !target) return "custom";
         const diff = Math.round(
-          (new Date(`${dueDate}T00:00:00`).getTime() -
+          (new Date(`${target}T00:00:00`).getTime() -
             new Date(`${invoiceDate}T00:00:00`).getTime()) /
             86_400_000
         );
@@ -119,16 +123,28 @@ export function InvoiceBuilder({
             freshDates: false,
           });
           setState(next);
-          setDuePreset(presetFromDates(next.invoiceDate, next.dueDate));
+          setDuePreset(
+            presetFromDates(
+              next.invoiceDate,
+              next.validityDate,
+              next.dueDate
+            )
+          );
           setLoadedFrom("edit");
           if (record.status === "draft") {
             setResumeDraftId(record.id);
             setSavedDraftId(record.id);
           }
         } else {
-          const next = emptyDraft(appSettings);
+          const next = emptyDraft(appSettings, docType);
           setState(next);
-          setDuePreset(presetFromDates(next.invoiceDate, next.dueDate));
+          setDuePreset(
+            presetFromDates(
+              next.invoiceDate,
+              next.validityDate,
+              next.dueDate
+            )
+          );
           setLoadedFrom("fresh");
           showToast("Couldn't load that invoice.", "error");
         }
@@ -137,19 +153,31 @@ export function InvoiceBuilder({
 
       if (duplicateId) {
         try {
-          const draft = await duplicateInvoiceToDraft(duplicateId);
+          const draft = await duplicateInvoiceToDraft(duplicateId, docType);
           if (cancelled) return;
           const next = stateFromInvoice(draft, appSettings, {
             freshDates: true,
           });
           setState(next);
-          setDuePreset(presetFromDates(next.invoiceDate, next.dueDate));
+          setDuePreset(
+            presetFromDates(
+              next.invoiceDate,
+              next.validityDate,
+              next.dueDate
+            )
+          );
           setLoadedFrom("duplicate");
         } catch {
           if (cancelled) return;
-          const next = emptyDraft(appSettings);
+          const next = emptyDraft(appSettings, docType);
           setState(next);
-          setDuePreset(presetFromDates(next.invoiceDate, next.dueDate));
+          setDuePreset(
+            presetFromDates(
+              next.invoiceDate,
+              next.validityDate,
+              next.dueDate
+            )
+          );
           setLoadedFrom("fresh");
           showToast("Couldn't duplicate that invoice.", "error");
         }
@@ -159,13 +187,25 @@ export function InvoiceBuilder({
       const restored = loadDraft(draftKey, appSettings);
       if (restored) {
         setState(restored);
-        setDuePreset(presetFromDates(restored.invoiceDate, restored.dueDate));
+        setDuePreset(
+          presetFromDates(
+            restored.invoiceDate,
+            restored.validityDate,
+            restored.dueDate
+          )
+        );
         setLoadedFrom("draft");
         showToast("Restored your draft.", "info");
       } else {
-        const next = emptyDraft(appSettings);
+        const next = emptyDraft(appSettings, docType);
         setState(next);
-        setDuePreset(presetFromDates(next.invoiceDate, next.dueDate));
+        setDuePreset(
+          presetFromDates(
+            next.invoiceDate,
+            next.validityDate,
+            next.dueDate
+          )
+        );
         setLoadedFrom("fresh");
       }
     })();
@@ -218,12 +258,14 @@ export function InvoiceBuilder({
 
   const previewNumber = useMemo(() => {
     if (state?.invoiceNumber.trim()) return state.invoiceNumber.trim();
-    return formatInvoiceNumber(
-      settings?.invoicePrefix,
-      settings?.nextInvoiceNumber ?? 1,
-      settings?.invoiceNumberPadding ?? 4
-    );
-  }, [state, settings]);
+    const prefix = isQuotation
+      ? settings?.quotationPrefix || "QOT"
+      : settings?.invoicePrefix;
+    const next = isQuotation
+      ? settings?.nextQuotationNumber ?? 1
+      : settings?.nextInvoiceNumber ?? 1;
+    return formatInvoiceNumber(prefix, next, settings?.invoiceNumberPadding ?? 4);
+  }, [state, settings, isQuotation]);
 
   if (!state) {
     return (
@@ -302,6 +344,7 @@ export function InvoiceBuilder({
     }));
 
     const draft: InvoiceDraft = {
+      docType: isQuotation ? "quotation" : "invoice",
       invoiceNumber: state.invoiceNumber.trim(),
       customerId: state.customerId,
       customerSnapshot: {
@@ -312,7 +355,8 @@ export function InvoiceBuilder({
       },
       items,
       invoiceDate: state.invoiceDate,
-      dueDate: state.dueDate || null,
+      dueDate: isQuotation ? null : state.dueDate || null,
+      validityDate: isQuotation ? state.validityDate || null : null,
       subtotal: keptCalc.totals.subtotal,
       discount: keptCalc.totals.discount,
       taxMode: settings?.taxMode ?? "none",
@@ -356,7 +400,7 @@ export function InvoiceBuilder({
       setSavedDraftId(invoice.id);
       setResumeDraftId(invoice.id);
       setFormError("");
-      showToast("Draft saved — you can resume editing it from Invoices.");
+      showToast("Draft saved — you can resume editing it later.");
     } catch (error) {
       const message =
         error instanceof Error
@@ -373,8 +417,9 @@ export function InvoiceBuilder({
     const base = state.invoiceDate
       ? new Date(`${state.invoiceDate}T00:00:00`)
       : new Date();
-    const due = new Date(base.getTime() + days * 86_400_000);
-    patch({ dueDate: formatDateInput(due) });
+    const next = new Date(base.getTime() + days * 86_400_000);
+    if (isQuotation) patch({ validityDate: formatDateInput(next) });
+    else patch({ dueDate: formatDateInput(next) });
   };
 
   const pickDuePreset = (value: "15" | "30" | "custom") => {
@@ -417,7 +462,9 @@ export function InvoiceBuilder({
       if (resumeDraftId) await deleteInvoice(resumeDraftId);
       clearDraft(draftKey);
       router.replace(`/invoice/view?id=${invoice.id}`);
-      showToast(`Invoice ${invoice.invoiceNumber} is ready.`);
+      showToast(
+        `${isQuotation ? "Quotation" : "Invoice"} ${invoice.invoiceNumber} is ready.`
+      );
     } catch (error) {
       const message =
         error instanceof Error
@@ -443,7 +490,11 @@ export function InvoiceBuilder({
         </button>
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-2xl font-bold tracking-tight text-stone-950 dark:text-white">
-            {mode === "quick" ? "Quick Invoice" : "New Invoice"}
+            {mode === "quick" && !isQuotation
+              ? "Quick Invoice"
+              : isQuotation
+                ? "New Quotation"
+                : "New Invoice"}
           </h1>
           <p className="truncate text-sm text-stone-500 dark:text-stone-400">
             Number: <span className="font-medium text-stone-700 dark:text-stone-300">{previewNumber}</span>
@@ -506,9 +557,11 @@ export function InvoiceBuilder({
 
           <Card>
             <CardHeader>
-              <CardTitle>Invoice details</CardTitle>
+              <CardTitle>{isQuotation ? "Quotation details" : "Invoice details"}</CardTitle>
               <CardDescription>
-                Dates, number and payment terms.
+                {isQuotation
+                  ? "Dates, number and validity."
+                  : "Dates, number and payment terms."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -516,7 +569,7 @@ export function InvoiceBuilder({
                 <Label htmlFor="invoice-number">
                   <span className="inline-flex items-center gap-1.5">
                     <Hash className="h-3.5 w-3.5" aria-hidden="true" />
-                    Invoice number (optional)
+                    {isQuotation ? "Quotation number" : "Invoice number"} (optional)
                   </span>
                 </Label>
                 <Input
@@ -534,7 +587,7 @@ export function InvoiceBuilder({
                   <Label htmlFor="invoice-date">
                     <span className="inline-flex items-center gap-1.5">
                       <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                      Issue date
+                      {isQuotation ? "Quotation date" : "Issue date"}
                     </span>
                   </Label>
                   <div className="flex gap-2">
@@ -564,11 +617,11 @@ export function InvoiceBuilder({
                   <Label>
                     <span className="inline-flex items-center gap-1.5">
                       <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                      Due date
+                      {isQuotation ? "Valid until" : "Due date"}
                     </span>
                   </Label>
                   <SegmentedControl
-                    aria-label="Due date preset"
+                    aria-label="Validity preset"
                     value={duePreset}
                     onChange={pickDuePreset}
                     options={[
@@ -578,11 +631,27 @@ export function InvoiceBuilder({
                     ]}
                   />
                   {duePreset === "custom" ? (
-                    <Input
-                      type="date"
-                      value={state.dueDate}
-                      onChange={(e) => patch({ dueDate: e.target.value })}
-                    />
+                    isQuotation ? (
+                      <Input
+                        type="date"
+                        value={state.validityDate}
+                        onChange={(e) =>
+                          patch({ validityDate: e.target.value })
+                        }
+                      />
+                    ) : (
+                      <Input
+                        type="date"
+                        value={state.dueDate}
+                        onChange={(e) => patch({ dueDate: e.target.value })}
+                      />
+                    )
+                  ) : isQuotation ? (
+                    state.validityDate ? (
+                      <p className="text-xs text-stone-400">
+                        Valid until {formatDate(state.validityDate)}
+                      </p>
+                    ) : null
                   ) : state.dueDate ? (
                     <p className="text-xs text-stone-400">
                       Due {formatDate(state.dueDate)}
@@ -650,7 +719,7 @@ export function InvoiceBuilder({
                 ) : (
                   <FileText className="h-5 w-5" aria-hidden="true" />
                 )}
-                {saving ? "Creating…" : "Generate invoice"}
+                {saving ? "Creating…" : isQuotation ? "Generate quotation" : "Generate invoice"}
               </Button>
             </div>
           </div>
@@ -668,6 +737,7 @@ export function InvoiceBuilder({
             business={business}
             settings={settings}
             invoice={{
+              docType: isQuotation ? "quotation" : "invoice",
               invoiceNumber: "",
               customerSnapshot: {
                 name: state.customer.name.trim() || "Customer",
@@ -693,7 +763,8 @@ export function InvoiceBuilder({
                 })
               ),
               invoiceDate: state.invoiceDate,
-              dueDate: state.dueDate || null,
+              dueDate: isQuotation ? null : state.dueDate || null,
+              validityDate: isQuotation ? state.validityDate || null : null,
               subtotal: calc.totals.subtotal,
               discount: calc.totals.discount,
               taxMode: settings?.taxMode ?? "none",
@@ -746,7 +817,7 @@ export function InvoiceBuilder({
                 ) : (
                   <FileText className="h-5 w-5" aria-hidden="true" />
                 )}
-                {saving ? "Creating…" : "Generate invoice"}
+                {saving ? "Creating…" : isQuotation ? "Generate quotation" : "Generate invoice"}
               </Button>
             </div>
           </div>

@@ -13,6 +13,7 @@ import {
   Package,
   Zap,
   LayoutGrid,
+  ScrollText,
   ShieldCheck,
 } from "lucide-react";
 import { BrandLogo } from "@/components/common/brand-logo";
@@ -27,12 +28,14 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/invoices", label: "Invoices", icon: FileText },
+  { href: "/quotations", label: "Quotations", icon: ScrollText },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/products", label: "Products", icon: Package },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const MORE_ITEMS = [
+  { href: "/quotations", label: "Quotations", icon: ScrollText },
   { href: "/products", label: "Products", icon: Package },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -51,6 +54,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   function goNewInvoice(mode: "quick" | "standard") {
     setCreateOpen(false);
     router.push(mode === "quick" ? "/invoice/new?mode=quick" : "/invoice/new");
+  }
+
+  function goNewQuotation() {
+    setCreateOpen(false);
+    router.push("/invoice/new?type=quotation");
   }
 
   return (
@@ -166,10 +174,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sheet
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Create invoice"
-        description="Choose how you'd like to start."
+        title="Create document"
+        description="Choose what you'd like to start."
       >
         <div className="space-y-2.5">
+          <CreateOption
+            icon={ScrollText}
+            title="Quotation"
+            description="Send a quote before the work happens."
+            onClick={() => goNewQuotation()}
+          />
           <CreateOption
             icon={Zap}
             title="Quick Invoice"

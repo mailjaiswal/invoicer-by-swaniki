@@ -34,6 +34,7 @@ pdfMakeNode.fonts = {
 function sampleInvoice(overrides: Partial<Invoice> = {}): Invoice {
   return {
     id: "inv-1",
+    docType: "invoice",
     invoiceNumber: "INV-0001",
     customerSnapshot: {
       name: "Acme Corp",
@@ -418,7 +419,7 @@ describe("pdfmake document definitions", () => {
     expect(text.some((t) => t.includes("Not tax or legal advice"))).toBe(true);
   });
 
-  it("renders per-item comments on a single line with the item", () => {
+  it("renders the item name boldly with description and comments as smaller sub-text", () => {
     const doc = buildInvoiceDocDef(
       sampleInvoice({
         items: [
@@ -441,10 +442,67 @@ describe("pdfmake document definitions", () => {
       sampleSettings()
     );
     const text = collectText(doc);
-    const line = text.find((t) => t.startsWith("Website design"));
-    expect(line).toBeDefined();
-    expect(line!).toContain("Homepage + 4 inner pages");
-    expect(line!).toContain("Includes setup, 2 revisions and a domain.");
+    const name = text.find((t) => t === "Website design");
+    expect(name).toBeDefined();
+    expect(text.some((t) => t === "Homepage + 4 inner pages")).toBe(true);
+    expect(text.some((t) => t === "Includes setup, 2 revisions and a domain.")).toBe(true);
+  });
+
+  it("uses Particulars as the item column header", () => {
+    const doc = buildInvoiceDocDef(sampleInvoice(), undefined, sampleSettings());
+    const text = collectText(doc);
+    expect(text.some((t) => t === "Particulars")).toBe(true);
+    expect(text.some((t) => t === "Description")).toBe(false);
+  });
+
+  it("renders a quotation title, valid-until date and no status", () => {
+    const doc = buildInvoiceDocDef(
+      sampleInvoice({
+        docType: "quotation",
+        invoiceNumber: "QOT-0001",
+        dueDate: null,
+        validityDate: "2026-06-16",
+        status: "unpaid",
+        payment: { status: "unpaid", amountPaid: 0, balance: 26260 },
+      }),
+      undefined,
+      sampleSettings()
+    );
+    const text = collectText(doc);
+    expect(text.some((t) => t === "QUOTATION")).toBe(true);
+    expect(text.some((t) => t.startsWith("Valid until"))).toBe(true);
+    expect(text.some((t) => t === "UNPAID")).toBe(false);
+    expect(text.some((t) => t === "PAID")).toBe(false);
+  });
+
+  it("skips the UPI QR block for quotations", () => {
+    const invoice = sampleInvoice({
+      docType: "quotation",
+      invoiceNumber: "QOT-0001",
+      dueDate: null,
+      validityDate: "2026-06-16",
+      status: "unpaid",
+      payment: { status: "unpaid", amountPaid: 0, balance: 26260 },
+    });
+    const doc = buildInvoiceDocDef(
+      invoice,
+      {
+        id: "biz",
+        name: "Swaniki Studio",
+        email: "hi@swaniki.example",
+        phone: "+91 90000 00000",
+        address: "14th Cross, Indiranagar, Bengaluru",
+        gstin: "29ABCDE1234F1Z5",
+        upiId: "swaniki@oksbi",
+        showUpiQr: true,
+        createdAt: 0,
+        updatedAt: 0,
+      },
+      undefined,
+      { upiQrDataUrl: PNG_1PX }
+    );
+    const text = collectText(doc);
+    expect(text.some((t) => t.includes("Pay via UPI"))).toBe(false);
   });
 
   it("includes the legal disclaimer on the receipt", () => {

@@ -27,6 +27,7 @@ function sampleProduct(overrides: Partial<Product> = {}): Product {
 function sampleInvoice(): Invoice {
   return {
     id: "inv-1",
+    docType: "invoice",
     invoiceNumber: "INV-0001",
     customerSnapshot: { name: "Acme Corp" },
     items: [

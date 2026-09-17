@@ -12,6 +12,9 @@ export interface AppSettings {
   invoicePrefix: string;
   nextInvoiceNumber: number;
   invoiceNumberPadding: number;
+  /** Quotation numbering, independent of the invoice sequence (M15). */
+  quotationPrefix?: string;
+  nextQuotationNumber?: number;
   currency: CurrencyCode;
   taxMode: TaxMode;
   defaultTax: number | null;
