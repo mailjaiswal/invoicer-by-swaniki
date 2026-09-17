@@ -51,6 +51,7 @@ import {
   emptyDraft,
   loadDraft,
   stateFromInvoice,
+  syncLineFromProduct,
   type BuilderState,
 } from "./builder-utils";
 import type { InvoiceDraft, InvoiceItem } from "@/lib/types";
@@ -72,7 +73,8 @@ export function InvoiceBuilder({
   const { showToast } = useToast();
 
   const customers = useLiveQuery(() => listCustomers(), []) ?? [];
-  const products = useLiveQuery(() => listProducts(), []) ?? [];
+  const productsLive = useLiveQuery(() => listProducts(), []);
+  const products = useMemo(() => productsLive ?? [], [productsLive]);
 
   const [state, setState] = useState<BuilderState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -199,8 +201,20 @@ export function InvoiceBuilder({
   }, [state]);
 
   const calc = useMemo(() => {
-    return calcInvoiceTotals(state?.items ?? []);
-  }, [state?.items]);
+    const productById = new Map(products.map((p) => [p.id, p]));
+    const liveItems = (state?.items ?? []).map((line) =>
+      syncLineFromProduct(line, productById.get(line.productId ?? ""))
+    );
+    return calcInvoiceTotals(liveItems);
+  }, [state?.items, products]);
+
+  const liveItems = useMemo(() => {
+    if (!state) return [];
+    const productById = new Map(products.map((p) => [p.id, p]));
+    return state.items.map((line) =>
+      syncLineFromProduct(line, productById.get(line.productId ?? ""))
+    );
+  }, [state, products]);
 
   const previewNumber = useMemo(() => {
     if (state?.invoiceNumber.trim()) return state.invoiceNumber.trim();
@@ -254,11 +268,11 @@ export function InvoiceBuilder({
 
   const validate = (): string | null => {
     if (!state.customer.name.trim()) return "Add a customer name.";
-    const kept = state.items.filter(hasContent);
+    const kept = liveItems.filter(hasContent);
     if (kept.length === 0) {
       return "Add at least one item with a name and quantity.";
     }
-    const named = state.items.filter((item) => item.name.trim().length > 0);
+    const named = liveItems.filter((item) => item.name.trim().length > 0);
     for (const item of named) {
       if (item.quantity <= 0) {
         return `Quantity must be more than zero for “${item.name}”.`;
@@ -270,7 +284,7 @@ export function InvoiceBuilder({
   };
 
   const buildDraft = () => {
-    const kept = state.items.filter(hasContent);
+    const kept = liveItems.filter(hasContent);
     const keptCalc = calcInvoiceTotals(kept);
     const items: InvoiceItem[] = kept.map((line, index) => ({
       id: line.id,
@@ -484,7 +498,7 @@ export function InvoiceBuilder({
 
           <ItemsEditor
             mode={mode}
-            items={state.items}
+            items={liveItems}
             products={products}
             currency={currency}
             onChange={(items) => patch({ items })}
@@ -580,7 +594,7 @@ export function InvoiceBuilder({
                 <Label htmlFor="invoice-notes">
                   <span className="inline-flex items-center gap-1.5">
                     <NotebookPen className="h-3.5 w-3.5" aria-hidden="true" />
-                    Notes
+                    {settings?.notesLabel || "Notes"}
                   </span>
                 </Label>
                 <Textarea
@@ -591,7 +605,9 @@ export function InvoiceBuilder({
                 />
               </div>
               <div>
-                <Label htmlFor="invoice-terms">Terms</Label>
+                <Label htmlFor="invoice-terms">
+                  {settings?.termsLabel || "Terms"}
+                </Label>
                 <Textarea
                   id="invoice-terms"
                   placeholder="Payment is expected within 15 days of the invoice date."
@@ -659,7 +675,7 @@ export function InvoiceBuilder({
                 email: state.customer.email,
                 phone: state.customer.phone,
               },
-              items: state.items.map(
+              items: liveItems.map(
                 (line, index): InvoiceItem => ({
                   id: line.id,
                   productId: line.productId,

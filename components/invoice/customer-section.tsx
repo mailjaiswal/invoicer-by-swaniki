@@ -38,6 +38,7 @@ export function CustomerSection({
   onSaveToggle,
 }: CustomerSectionProps) {
   const [query, setQuery] = useState("");
+  const [nameOpen, setNameOpen] = useState(false);
 
   const matches = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -51,7 +52,22 @@ export function CustomerSection({
       .slice(0, 6);
   }, [query, customers]);
 
+  const nameSuggestions = useMemo(() => {
+    const needle = customer.name.trim().toLowerCase();
+    if (!needle) return [];
+    return customers
+      .filter(
+        (item) =>
+          item.id !== customerId &&
+          [item.name, item.company ?? "", item.email ?? ""].some((field) =>
+            field.toLowerCase().includes(needle)
+          )
+      )
+      .slice(0, 6);
+  }, [customer.name, customerId, customers]);
+
   const showDropdown = query.trim().length > 0 && !customerId;
+  const showNameSuggestions = nameOpen && nameSuggestions.length > 0;
 
   return (
     <Card>
@@ -153,12 +169,52 @@ export function CustomerSection({
             <Label htmlFor="customer-name">
               Customer name <span className="text-red-500">*</span>
             </Label>
-            <Input
-              id="customer-name"
-              placeholder="e.g. Aarav Kapoor"
-              value={customer.name}
-              onChange={(e) => onChange({ name: e.target.value })}
-            />
+            <div className="relative">
+              <Input
+                id="customer-name"
+                placeholder={mode === "quick" ? "Type a customer name — suggestions appear as you type" : "e.g. Aarav Kapoor"}
+                value={customer.name}
+                onFocus={() => setNameOpen(true)}
+                onChange={(e) => {
+                  onChange({ name: e.target.value });
+                  setNameOpen(true);
+                }}
+              />
+              {showNameSuggestions && (
+                <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900">
+                  {nameSuggestions.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectExisting(item);
+                        setNameOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-stone-100 dark:hover:bg-stone-800"
+                    >
+                      <UserRound
+                        className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-300"
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-stone-900 dark:text-stone-100">
+                          {item.name}
+                        </span>
+                        {!!item.company && (
+                          <span className="block truncate text-xs text-stone-500">
+                            {item.company}
+                          </span>
+                        )}
+                      </span>
+                      <Check
+                        className="h-4 w-4 shrink-0 text-brand-600"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           {mode === "standard" && (
             <div>

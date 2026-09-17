@@ -238,6 +238,18 @@ export function buildInvoiceDocDef(
   const font = docFontFamily(settings);
   const moneyFont = isCompact || isMinimal ? 9 : isBold ? 11 : 10;
 
+  const orientation =
+    settings?.pageOrientation === "landscape" ? "landscape" : "portrait";
+  const pageMargins = (isCompact || isMinimal || isMinimalPersonality
+    ? [24, 24, 24, 28]
+    : isElegant
+      ? [40, 40, 40, 36]
+      : [36, 36, 36, 32]) as [number, number, number, number];
+  const contentWidth =
+    (orientation === "landscape" ? 841.89 : 595.28) -
+    pageMargins[1] -
+    pageMargins[3];
+
   const taxRows: Array<{ label: string; amount: number }> = [];
   if (invoice.taxBreakup.cgst)
     taxRows.push({ label: "CGST", amount: invoice.taxBreakup.cgst });
@@ -287,7 +299,7 @@ export function buildInvoiceDocDef(
                 type: "line",
                 x1: 0,
                 y1: 1.5,
-                x2: 519,
+                x2: contentWidth,
                 y2: 1.5,
                 lineWidth: 3,
                 lineColor: brand,
@@ -300,8 +312,8 @@ export function buildInvoiceDocDef(
         ? [
             {
               canvas: [
-                { type: "line", x1: 0, y1: 0, x2: 519, y2: 0, lineWidth: 0.7, lineColor: LINE },
-                { type: "line", x1: 0, y1: 2.2, x2: 519, y2: 2.2, lineWidth: 0.7, lineColor: LINE },
+                { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.7, lineColor: LINE },
+                { type: "line", x1: 0, y1: 2.2, x2: contentWidth, y2: 2.2, lineWidth: 0.7, lineColor: LINE },
               ],
               margin: margin(0, 0, 18),
             },
@@ -310,20 +322,20 @@ export function buildInvoiceDocDef(
           ? [
               {
                 canvas: [
-                  { type: "line", x1: 0, y1: 0, x2: 519, y2: 0, lineWidth: 1, lineColor: brand },
+                  { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1, lineColor: brand },
                 ],
                 margin: margin(0, 0, 18),
               },
             ]
           : [];
 
+  const notesLabel = (settings?.notesLabel?.trim() || "Notes").toUpperCase();
+  const termsLabel = (settings?.termsLabel?.trim() || "Terms").toUpperCase();
+
   return {
     pageSize: "A4",
-    pageMargins: (isCompact || isMinimal || isMinimalPersonality
-      ? [24, 24, 24, 28]
-      : isElegant
-        ? [40, 40, 40, 36]
-        : [36, 36, 36, 32]) as [number, number, number, number],
+    pageOrientation: orientation === "landscape" ? "landscape" : "portrait",
+    pageMargins,
     info: {
       title: `Invoice ${number}`,
       author: business?.name || "Invoicer by Swaniki",
@@ -457,32 +469,25 @@ export function buildInvoiceDocDef(
               { text: "Amount", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
             ],
             ...invoice.items.map((item) => [
-              {
-                stack: [
-                  { text: item.name || "Untitled item", bold: true, fontSize: 9, color: INK },
-                  ...(item.description
-                    ? [
-                        {
-                          text: item.description,
-                          fontSize: 8,
-                          color: MUTED,
-                          margin: margin(1, 0, 0),
-                        },
-                      ]
-                    : []),
-                  ...(item.comments
-                    ? [
-                        {
-                          text: item.comments,
-                          italics: true,
-                          fontSize: 8,
-                          color: MUTED,
-                          margin: margin(1, 1, 0),
-                        },
-                      ]
-                    : []),
-                ],
-              },
+              (() => {
+                const subtitle = [
+                  item.description?.trim(),
+                  item.comments?.trim(),
+                ]
+                  .filter((line): line is string => !!line)
+                  .map((line) => line.replace(/\s+/g, " ").trim())
+                  .join(" · ");
+                const full = subtitle
+                  ? `${item.name || "Untitled item"} — ${subtitle}`
+                  : item.name || "Untitled item";
+                return {
+                  text: full.length > 110 ? `${full.slice(0, 110)}…` : full,
+                  noWrap: true,
+                  fontSize: 8.5,
+                  lineHeight: 1.3,
+                  color: INK,
+                };
+              })(),
               {
                 text: `${trimNumber(item.quantity)}${item.unit ? ` ${item.unit}` : ""}`,
                 alignment: "right",
@@ -553,7 +558,7 @@ export function buildInvoiceDocDef(
                       {
                         width: "*",
                         stack: [
-                          sectionLabel("NOTES"),
+                          sectionLabel(notesLabel),
                           { text: invoice.notes, margin: margin(3, 0, 0) },
                         ],
                       },
@@ -564,7 +569,7 @@ export function buildInvoiceDocDef(
                       {
                         width: "*",
                         stack: [
-                          sectionLabel("TERMS"),
+                          sectionLabel(termsLabel),
                           { text: invoice.terms, margin: margin(3, 0, 0) },
                         ],
                       },
@@ -707,6 +712,7 @@ export function buildReceiptDocDef(
     ? METHOD_LABELS[invoice.payment.method] ?? invoice.payment.method
     : "N/A";
   const font = docFontFamily(settings);
+  const notesLabel = (settings?.notesLabel?.trim() || "Notes").toUpperCase();
 
   const detailRows = [
     { label: "Amount received", value: money(amountReceived) },
@@ -817,7 +823,7 @@ export function buildReceiptDocDef(
               columns: [
                 {
                   width: "*",
-                  stack: [sectionLabel("NOTES"), { text: invoice.notes, margin: margin(3, 0, 0) }],
+                  stack: [sectionLabel(notesLabel), { text: invoice.notes, margin: margin(3, 0, 0) }],
                 },
               ],
             },

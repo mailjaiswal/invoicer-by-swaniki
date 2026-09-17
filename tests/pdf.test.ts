@@ -418,7 +418,7 @@ describe("pdfmake document definitions", () => {
     expect(text.some((t) => t.includes("Not tax or legal advice"))).toBe(true);
   });
 
-  it("renders per-item comments under the item name", () => {
+  it("renders per-item comments on a single line with the item", () => {
     const doc = buildInvoiceDocDef(
       sampleInvoice({
         items: [
@@ -441,12 +441,10 @@ describe("pdfmake document definitions", () => {
       sampleSettings()
     );
     const text = collectText(doc);
-    expect(text.some((t) => t === "Website design")).toBe(true);
-    expect(
-      text.some((t) =>
-        t.includes("Includes setup, 2 revisions and a domain.")
-      )
-    ).toBe(true);
+    const line = text.find((t) => t.startsWith("Website design"));
+    expect(line).toBeDefined();
+    expect(line!).toContain("Homepage + 4 inner pages");
+    expect(line!).toContain("Includes setup, 2 revisions and a domain.");
   });
 
   it("includes the legal disclaimer on the receipt", () => {

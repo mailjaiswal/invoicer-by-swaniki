@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Package, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, Package, Plus, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -18,15 +18,25 @@ import { Sheet } from "@/components/common/sheet";
 import { calcLine } from "@/lib/calculations";
 import { formatMoney } from "@/lib/formatting";
 import { CURRENCIES, type CurrencyCode } from "@/lib/constants";
-import { uid } from "@/lib/utils";
+import { uid, cn } from "@/lib/utils";
 import type { Product, TaxType } from "@/lib/types";
-import { isTaxType, type BuilderLine } from "./builder-utils";
+import { isTaxType, lineFromProduct, type BuilderLine } from "./builder-utils";
 
 const TAX_OPTIONS: Array<{ value: TaxType; label: string }> = [
   { value: "none", label: "No tax" },
   { value: "percentage", label: "Percentage" },
   { value: "gst_igst", label: "IGST" },
   { value: "gst_cgst_sgst", label: "CGST + SGST" },
+];
+
+/** Fields that belong to the source product — editing these breaks the link. */
+const PRODUCT_SHARED_KEYS = [
+  "name",
+  "description",
+  "unit",
+  "rate",
+  "taxType",
+  "taxRate",
 ];
 
 interface ItemsEditorProps {
@@ -45,10 +55,52 @@ export function ItemsEditor({
   onChange,
 }: ItemsEditorProps) {
   const [productSheetOpen, setProductSheetOpen] = useState(false);
+  const [pendingIds, setPendingIds] = useState<string[]>([]);
   const symbol = CURRENCIES[currency]?.symbol ?? CURRENCIES.INR.symbol;
 
+  const pendingProducts = useMemo(
+    () =>
+      pendingIds
+        .map((id) => products.find((p) => p.id === id))
+        .filter((p): p is Product => !!p),
+    [pendingIds, products]
+  );
+
+  const togglePending = (id: string) => {
+    setPendingIds((current) =>
+      current.includes(id)
+        ? current.filter((existing) => existing !== id)
+        : [...current, id]
+    );
+  };
+
+  const addSelectedProducts = () => {
+    if (pendingProducts.length === 0) return;
+    onChange([
+      ...items,
+      ...pendingProducts.map((product) => lineFromProduct(product)),
+    ]);
+    setPendingIds([]);
+    setProductSheetOpen(false);
+  };
+
   const updateLine = (id: string, patch: Partial<BuilderLine>) => {
-    onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+    onChange(
+      items.map((item) => {
+        if (item.id !== id) return item;
+        if (patch.productId || "linked" in patch) {
+          return { ...item, ...patch };
+        }
+        const editsShared = Object.keys(patch).some((key) =>
+          PRODUCT_SHARED_KEYS.includes(key)
+        );
+        return {
+          ...item,
+          ...patch,
+          linked: editsShared ? false : item.linked,
+        };
+      })
+    );
   };
 
   const removeLine = (id: string) => {
@@ -104,6 +156,7 @@ export function ItemsEditor({
           <ItemCard
             key={item.id}
             line={item}
+            products={products}
             symbol={symbol}
             currency={currency}
             showRemove={mode === "standard" && items.length > 1}
@@ -121,55 +174,85 @@ export function ItemsEditor({
 
       <Sheet
         open={productSheetOpen}
-        onClose={() => setProductSheetOpen(false)}
+        onClose={() => {
+          setProductSheetOpen(false);
+          setPendingIds([]);
+        }}
         title="Add from your products"
-        description="Pick a saved product to add it as a line item."
+        description="Select one or more saved products to add them as line items."
       >
         <div className="space-y-1">
           {products.length === 0 ? (
             <p className="py-8 text-center text-sm text-stone-500">
-              No saved products yet. Type the name and rate directly instead —
-              product management arrives in a later milestone.
+              No saved products yet. Add them from the Products page, or type
+              the item name and rate directly here.
             </p>
           ) : (
-            products.map((product) => (
-              <button
-                key={product.id}
-                type="button"
-                onClick={() => {
-                  addLine({
-                    productId: product.id,
-                    name: product.name,
-                    description: product.description,
-                    rate: product.rate,
-                    unit: product.unit,
-                    taxType: product.taxRate
-                      ? "percentage"
-                      : "none",
-                    taxRate: product.taxRate ?? 0,
-                  });
-                  setProductSheetOpen(false);
-                }}
-                className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-stone-100 dark:hover:bg-stone-800"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-stone-900 dark:text-stone-100">
-                    {product.name}
+            products.map((product) => {
+              const selected = pendingIds.includes(product.id);
+              return (
+                <button
+                  key={product.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => togglePending(product.id)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
+                    selected
+                      ? "border-brand-300 bg-brand-50 dark:border-brand-700 dark:bg-brand-900/30"
+                      : "border-transparent hover:bg-stone-100 dark:hover:bg-stone-800"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border",
+                      selected
+                        ? "border-brand-600 bg-brand-600 text-white"
+                        : "border-stone-300 dark:border-stone-600"
+                    )}
+                  >
+                    {selected && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                   </span>
-                  <span className="block truncate text-xs text-stone-500">
-                    {product.unit || "unit"} ·{" "}
-                    {formatMoney(product.rate, currency)}
-                    {product.taxRate ? ` · ${product.taxRate}%` : ""}
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-stone-900 dark:text-stone-100">
+                      {product.name}
+                    </span>
+                    <span className="block truncate text-xs text-stone-500">
+                      {product.unit || "unit"} ·{" "}
+                      {formatMoney(product.rate, currency)}
+                      {product.taxRate ? ` · ${product.taxRate}%` : ""}
+                    </span>
                   </span>
-                </span>
-                <Plus
-                  className="h-4 w-4 shrink-0 text-brand-600"
-                  aria-hidden="true"
-                />
-              </button>
-            ))
+                  <span className="ml-auto shrink-0 text-xs text-stone-400">
+                    {product.description ? "·" : ""}
+                  </span>
+                </button>
+              );
+            })
           )}
         </div>
+        {products.length > 0 && (
+          <div className="mt-4 flex flex-col gap-2">
+            <Button onClick={addSelectedProducts} disabled={pendingIds.length === 0}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add selected{pendingIds.length > 0 ? ` (${pendingIds.length})` : ""}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                setPendingIds(
+                  pendingIds.length === products.length
+                    ? []
+                    : products.map((p) => p.id)
+                )
+              }
+            >
+              {pendingIds.length === products.length
+                ? "Clear selection"
+                : "Select all"}
+            </Button>
+          </div>
+        )}
       </Sheet>
     </Card>
   );
@@ -177,6 +260,7 @@ export function ItemsEditor({
 
 interface ItemCardProps {
   line: BuilderLine;
+  products: Product[];
   symbol: string;
   currency: CurrencyCode;
   showRemove: boolean;
@@ -186,6 +270,7 @@ interface ItemCardProps {
 
 function ItemCard({
   line,
+  products,
   symbol,
   currency,
   showRemove,
@@ -200,10 +285,27 @@ function ItemCard({
     taxRate: line.taxRate,
   });
 
+  const [nameOpen, setNameOpen] = useState(false);
+
+  const productSuggestions = useMemo(() => {
+    const needle = line.name.trim().toLowerCase();
+    if (!needle) return [];
+    return products
+      .filter((product) =>
+        [product.name, product.description ?? "", product.unit ?? ""]
+          .join(" ")
+          .toLowerCase()
+          .includes(needle)
+      )
+      .slice(0, 6);
+  }, [products, line.name]);
+
+  const showSuggestions = nameOpen && productSuggestions.length > 0;
+
   return (
     <div className="rounded-xl border border-stone-200 p-3.5 dark:border-stone-700">
       <div className="flex items-start gap-2">
-        <div className="flex-1">
+        <div className="relative flex-1">
           <Label htmlFor={`item-name-${line.id}`} className="sr-only">
             Item name
           </Label>
@@ -211,8 +313,52 @@ function ItemCard({
             id={`item-name-${line.id}`}
             placeholder="Describe the item or service"
             value={line.name}
+            onFocus={() => setNameOpen(true)}
             onChange={(e) => onUpdate({ name: e.target.value })}
           />
+          {showSuggestions && (
+            <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-xl border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900">
+              {productSuggestions.map((product) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => {
+                    onUpdate({
+                      productId: product.id,
+                      linked: true,
+                      name: product.name,
+                      description: product.description,
+                      unit: product.unit,
+                      rate: product.rate,
+                      taxType: product.taxRate ? "percentage" : "none",
+                      taxRate: product.taxRate ?? 0,
+                    });
+                    setNameOpen(false);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-stone-100 dark:hover:bg-stone-800"
+                >
+                  <Package
+                    className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-300"
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-stone-900 dark:text-stone-100">
+                      {product.name}
+                    </span>
+                    {!!product.description && (
+                      <span className="block truncate text-xs text-stone-500">
+                        {product.description}
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-xs text-stone-500">
+                    {formatMoney(product.rate, currency)}
+                    {product.unit ? ` / ${product.unit}` : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {showRemove && (
           <Button
@@ -334,6 +480,14 @@ function ItemCard({
           </p>
         </div>
       </div>
+
+      {line.linked && (
+        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-stone-400 dark:text-stone-500">
+          <Package className="h-3 w-3" aria-hidden="true" />
+          Linked to a saved product — name, rate &amp; tax update automatically.
+          Edit any of those to take manual control.
+        </p>
+      )}
 
       <div className="mt-3">
         <Label htmlFor={`comments-${line.id}`}>

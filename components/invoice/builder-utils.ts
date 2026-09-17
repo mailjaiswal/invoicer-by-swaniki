@@ -2,12 +2,15 @@ import { uid, formatDateInput } from "@/lib/utils";
 import type {
   AppSettings,
   InvoiceDraft,
+  Product,
   TaxType,
 } from "@/lib/types";
 
 export interface BuilderLine {
   id: string;
   productId?: string;
+  /** When true the line keeps pulling name/description/unit/rate/tax from the linked product. */
+  linked?: boolean;
   name: string;
   description?: string;
   comments?: string;
@@ -81,6 +84,46 @@ export function blankLine(
   };
 }
 
+/** Build a new line directly from a saved product (keeps a live link). */
+export function lineFromProduct(product: Product): BuilderLine {
+  return {
+    id: uid("item"),
+    productId: product.id,
+    linked: true,
+    name: product.name,
+    description: product.description,
+    quantity: 1,
+    unit: product.unit,
+    rate: product.rate,
+    discount: 0,
+    taxType: product.taxRate ? "percentage" : "none",
+    taxRate: product.taxRate ?? 0,
+  };
+}
+
+/**
+ * Re-apply a linked line's shared fields from the current product so invoices
+ * being generated automatically track catalogue edits. Manual overrides (qty,
+ * discount, comments) and anything user-typed after linking are preserved
+ * unless the product no longer exists.
+ */
+export function syncLineFromProduct(
+  line: BuilderLine,
+  product?: Product | null
+): BuilderLine {
+  if (!line.linked || !line.productId || !product) return line;
+  if (product.id !== line.productId) return line;
+  return {
+    ...line,
+    name: product.name,
+    description: product.description,
+    unit: product.unit,
+    rate: product.rate,
+    taxType: product.taxRate ? ("percentage" as const) : ("none" as const),
+    taxRate: product.taxRate ?? 0,
+  };
+}
+
 export function emptyDraft(settings?: AppSettings | null): BuilderState {
   const days = settings?.defaultPaymentTermsDays ?? 0;
   const today = formatDateInput(new Date());
@@ -117,6 +160,7 @@ export function stateFromInvoice(
     items: draft.items.map((item) => ({
       id: uid("item"),
       productId: item.productId,
+      linked: !!item.productId,
       name: item.name,
       description: item.description,
       comments: item.comments,
@@ -172,6 +216,8 @@ export function normalizeBuilderState(
     .map((item) => ({
       id: str(item.id) || uid("item"),
       productId: str(item.productId) || undefined,
+      linked:
+        typeof item.linked === "boolean" ? item.linked : undefined,
       name: str(item.name),
       description: str(item.description) || undefined,
       comments: str(item.comments) || undefined,

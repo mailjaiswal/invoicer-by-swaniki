@@ -1,6 +1,6 @@
 "use client";
 
-import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon, Banknote, Type } from "lucide-react";
+import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon, Banknote, Type, FileSliders, Tags } from "lucide-react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import {
   Card,
@@ -11,6 +11,7 @@ import {
 } from "@/components/common/card";
 import { Select } from "@/components/common/select";
 import { Input } from "@/components/common/input";
+import { Label } from "@/components/common/label";
 import { useApp, useToast } from "@/lib/providers";
 import {
   ACCENT_COLOR_SWATCHES,
@@ -26,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { InvoicePersonality, InvoiceTemplateId } from "@/lib/types";
 import type { LogoPosition } from "@/lib/constants";
+import type { PageOrientation } from "@/lib/types";
 
 export function AppearanceSection() {
   const { business, settings, updateBusiness, updateSettings } = useApp();
@@ -87,6 +89,36 @@ export function AppearanceSection() {
     updateSettings({ docFont: id })
       .then(() => showToast("Invoice font saved.", "success"))
       .catch(() => showToast("Couldn't save the font.", "error"));
+  };
+
+  const orientation = settings?.pageOrientation ?? "portrait";
+  const notesLabel = settings?.notesLabel || "Notes";
+  const termsLabel = settings?.termsLabel || "Terms";
+
+  const setOrientation = (value: string) => {
+    const id = value as PageOrientation;
+    if (id !== "portrait" && id !== "landscape") return;
+    updateSettings({ pageOrientation: id })
+      .then(() => showToast("Page orientation saved.", "success"))
+      .catch(() => showToast("Couldn't save the orientation.", "error"));
+  };
+
+  const setNotesLabel = (value: string) => {
+    const label = value.trim();
+    updateSettings({
+      notesLabel: label || "Notes",
+    })
+      .then(() => showToast("Section label saved.", "success"))
+      .catch(() => showToast("Couldn't save the label.", "error"));
+  };
+
+  const setTermsLabel = (value: string) => {
+    const label = value.trim();
+    updateSettings({
+      termsLabel: label || "Terms",
+    })
+      .then(() => showToast("Section label saved.", "success"))
+      .catch(() => showToast("Couldn't save the label.", "error"));
   };
 
   return (
@@ -306,6 +338,71 @@ export function AppearanceSection() {
           <p className="text-xs text-stone-400 dark:text-stone-500">
             {INVOICE_PERSONALITIES.find((p) => p.id === personality)?.blurb}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileSliders className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Page setup
+          </CardTitle>
+          <CardDescription>
+            The paper orientation used for printed and downloaded invoices.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Select
+            value={orientation}
+            onChange={(e) => setOrientation(e.target.value)}
+            aria-label="Page orientation"
+          >
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </Select>
+          <p className="text-xs text-stone-400 dark:text-stone-500">
+            Portrait is a standard A4 page; landscape gives line items more
+            room to breathe. Applies to every invoice you print or download.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Tags className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Section labels
+          </CardTitle>
+          <CardDescription>
+            What the notes and terms blocks at the bottom of an invoice are
+            called. Name them anything you like.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="notes-label">Notes heading</Label>
+            <Input
+              id="notes-label"
+              placeholder="Notes"
+              value={notesLabel}
+              onChange={(e) => setNotesLabel(e.target.value)}
+            />
+            <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
+              e.g. Notes, Message, Instructions, Payment info
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="terms-label">Terms heading</Label>
+            <Input
+              id="terms-label"
+              placeholder="Terms"
+              value={termsLabel}
+              onChange={(e) => setTermsLabel(e.target.value)}
+            />
+            <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
+              e.g. Terms, Policy, Deadline, Conditions
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -66,6 +66,10 @@ export function InvoiceDocument({
       : "roboto";
 
   const { cgst, sgst, igst } = invoice.taxBreakup;
+  const orientation = settings?.pageOrientation ?? "portrait";
+  const landscape = orientation === "landscape";
+  const notesLabel = settings?.notesLabel?.trim() || "Notes";
+  const termsLabel = settings?.termsLabel?.trim() || "Terms";
   const upiId = business?.upiId?.trim();
   const useUpiQr = !!upiId && !!business?.showUpiQr && isValidUpiId(upiId);
   const upiQrValue = useUpiQr
@@ -281,6 +285,9 @@ export function InvoiceDocument({
       className={className}
       style={FONT_STACKS[docFont] ? { fontFamily: FONT_STACKS[docFont] } : undefined}
     >
+      {landscape && (
+        <style>{`@page { size: A4 landscape; margin: 12mm; }`}</style>
+      )}
       <div
         className={cn(
           "border border-stone-200 bg-white text-stone-900",
@@ -315,21 +322,19 @@ export function InvoiceDocument({
               </thead>
               <tbody>
                 {invoice.items.map((item) => (
-                  <tr key={item.id} className="border-b border-stone-100 align-top">
-                    <td className="py-3 pr-3">
-                      <p className="font-medium text-stone-900">{item.name || "Untitled item"}</p>
-                      {!!item.description && (
-                        <p className={cn("mt-0.5 text-stone-500", isCompact ? "text-[11px]" : "text-xs")}>{item.description}</p>
-                      )}
-                      {!!item.comments && (
-                        <p className={cn("mt-0.5 whitespace-pre-line italic text-stone-500", isCompact ? "text-[11px]" : "text-xs")}>{item.comments}</p>
-                      )}
+                  <tr key={item.id} className="border-b border-stone-100 align-middle">
+                    <td className="py-2.5 pr-3">
+                      <p className="truncate font-medium text-stone-900" style={{ fontSize: "13px", lineHeight: "1.35" }}>
+                        {item.name || "Untitled item"}
+                        {!!item.description && <span className="text-stone-500"> · {item.description}</span>}
+                        {!!item.comments && <span className="italic text-stone-500"> · “{item.comments.replace(/\s+/g, " ").trim()}”</span>}
+                      </p>
                     </td>
-                    <td className="py-3 pr-3 text-right text-stone-700">{trimNumber(item.quantity)}{item.unit ? ` ${item.unit}` : ""}</td>
-                    <td className="py-3 pr-3 text-right text-stone-700">{money(item.rate)}</td>
-                    <td className="py-3 pr-3 text-right text-stone-500">{taxLabel(item.taxType, item.taxRate)}</td>
-                    <td className="py-3 pr-3 text-right text-stone-500">{item.discount ? `${trimNumber(item.discount)}%` : "—"}</td>
-                    <td className="py-3 text-right font-medium text-stone-900">{money(item.lineTotal)}</td>
+                    <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}{item.unit ? ` ${item.unit}` : ""}</td>
+                    <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{money(item.rate)}</td>
+                    <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{taxLabel(item.taxType, item.taxRate)}</td>
+                    <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{item.discount ? `${trimNumber(item.discount)}%` : "—"}</td>
+                    <td className="py-2.5 text-right font-medium text-stone-900" style={{ fontSize: "13px" }}>{money(item.lineTotal)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -395,13 +400,13 @@ export function InvoiceDocument({
             <div className={cn("grid gap-4 border-t border-stone-100 pt-4", isCompact ? "text-[10px]" : "text-xs", isCompact ? "" : "sm:grid-cols-2")}>
               {!!invoice.notes?.trim() && (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">Notes</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">{notesLabel}</p>
                   <p className="mt-1 whitespace-pre-line leading-relaxed text-stone-600">{invoice.notes}</p>
                 </div>
               )}
               {!!invoice.terms?.trim() && (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">Terms</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">{termsLabel}</p>
                   <p className="mt-1 whitespace-pre-line leading-relaxed text-stone-600">{invoice.terms}</p>
                 </div>
               )}

@@ -5,6 +5,8 @@ export type InvoiceTemplateId = "modern" | "classic" | "compact" | "minimal" | "
 
 export type InvoicePersonality = "professional" | "minimal" | "friendly";
 
+export type PageOrientation = "portrait" | "landscape";
+
 export interface AppSettings {
   id: string;
   invoicePrefix: string;
@@ -20,6 +22,9 @@ export interface AppSettings {
   accentColor: string;
   personality?: InvoicePersonality;
   docFont?: DocFontId;
+  pageOrientation?: PageOrientation;
+  notesLabel?: string;
+  termsLabel?: string;
   createdAt: number;
   updatedAt: number;
 }

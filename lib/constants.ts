@@ -74,6 +74,9 @@ export const DEFAULT_SETTINGS = {
   defaultTemplate: "modern",
   defaultPaymentTermsDays: 15,
   docFont: "roboto",
+  pageOrientation: "portrait",
+  notesLabel: "Notes",
+  termsLabel: "Terms",
 } as const;
 
 /** Invoice layouts the document engine can render (spec §16). */
