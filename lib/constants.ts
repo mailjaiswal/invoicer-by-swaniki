@@ -19,12 +19,47 @@ export const PRIVACY_NOTE =
 export const TAX_DISCLAIMER =
   "Invoicer by Swaniki helps create invoices; it is not a tax filing or accounting system.";
 
+/** Legal boundaries, shown prominently in Settings → About. */
+export const LEGAL_DISCLAIMER =
+  "Invoicer by Swaniki does not touch the legal, tax or accounting framework of your country. Invoice rules — taxes, GST/VAT, language, records and official formats — vary by jurisdiction, so please double-check everything you publish, send or file before you go live.";
+
+/** Symbol/text that differentiates a currency in the PDF. Robin (Roboto) is
+    the PDF's bundled font and covers ₹, $, €, £, ¥, ₩, ₺, ₽ and ₫. */
 export const CURRENCIES = {
-  INR: { code: "INR", symbol: "₹", locale: "en-IN" },
-  USD: { code: "USD", symbol: "$", locale: "en-US" },
-  EUR: { code: "EUR", symbol: "€", locale: "de-DE" },
-  GBP: { code: "GBP", symbol: "£", locale: "en-GB" },
-  AED: { code: "AED", symbol: "AED", locale: "en-AE" },
+  INR: { code: "INR", symbol: "₹", locale: "en-IN", digits: 2 },
+  USD: { code: "USD", symbol: "$", locale: "en-US", digits: 2 },
+  EUR: { code: "EUR", symbol: "€", locale: "de-DE", digits: 2 },
+  GBP: { code: "GBP", symbol: "£", locale: "en-GB", digits: 2 },
+  AED: { code: "AED", symbol: "AED", locale: "en-AE", digits: 2 },
+  AUD: { code: "AUD", symbol: "A$", locale: "en-AU", digits: 2 },
+  CAD: { code: "CAD", symbol: "C$", locale: "en-CA", digits: 2 },
+  SGD: { code: "SGD", symbol: "S$", locale: "en-SG", digits: 2 },
+  CHF: { code: "CHF", symbol: "CHF", locale: "de-CH", digits: 2 },
+  CNY: { code: "CNY", symbol: "CN¥", locale: "zh-CN", digits: 2 },
+  HKD: { code: "HKD", symbol: "HK$", locale: "zh-HK", digits: 2 },
+  JPY: { code: "JPY", symbol: "¥", locale: "ja-JP", digits: 0 },
+  KRW: { code: "KRW", symbol: "₩", locale: "ko-KR", digits: 0 },
+  IDR: { code: "IDR", symbol: "Rp", locale: "id-ID", digits: 0 },
+  VND: { code: "VND", symbol: "₫", locale: "vi-VN", digits: 0 },
+  MYR: { code: "MYR", symbol: "RM", locale: "ms-MY", digits: 2 },
+  NZD: { code: "NZD", symbol: "NZ$", locale: "en-NZ", digits: 2 },
+  PHP: { code: "PHP", symbol: "₱", locale: "en-PH", digits: 2 },
+  TRY: { code: "TRY", symbol: "₺", locale: "tr-TR", digits: 2 },
+  RUB: { code: "RUB", symbol: "₽", locale: "ru-RU", digits: 2 },
+  ZAR: { code: "ZAR", symbol: "R", locale: "en-ZA", digits: 2 },
+  BRL: { code: "BRL", symbol: "R$", locale: "pt-BR", digits: 2 },
+  MXN: { code: "MXN", symbol: "MX$", locale: "es-MX", digits: 2 },
+  QAR: { code: "QAR", symbol: "QR", locale: "en-QA", digits: 2 },
+  SAR: { code: "SAR", symbol: "SAR", locale: "ar-SA", digits: 2 },
+  LKR: { code: "LKR", symbol: "Rs", locale: "en-LK", digits: 2 },
+  NPR: { code: "NPR", symbol: "Rs", locale: "en-NP", digits: 2 },
+  PKR: { code: "PKR", symbol: "Rs", locale: "en-PK", digits: 2 },
+  PLN: { code: "PLN", symbol: "zł", locale: "pl-PL", digits: 2 },
+  CZK: { code: "CZK", symbol: "Kč", locale: "cs-CZ", digits: 2 },
+  HUF: { code: "HUF", symbol: "Ft", locale: "hu-HU", digits: 0 },
+  SEK: { code: "SEK", symbol: "kr", locale: "sv-SE", digits: 2 },
+  NOK: { code: "NOK", symbol: "kr", locale: "nb-NO", digits: 2 },
+  DKK: { code: "DKK", symbol: "kr", locale: "da-DK", digits: 2 },
 } as const;
 
 export type CurrencyCode = keyof typeof CURRENCIES;
@@ -38,6 +73,7 @@ export const DEFAULT_SETTINGS = {
   defaultTerms: "",
   defaultTemplate: "modern",
   defaultPaymentTermsDays: 15,
+  docFont: "roboto",
 } as const;
 
 /** Invoice layouts the document engine can render (spec §16). */
@@ -57,9 +93,42 @@ export const INVOICE_TEMPLATES = [
     label: "Compact",
     blurb: "Dense and minimal — fits a lot on one page.",
   },
+  {
+    id: "minimal",
+    label: "Minimal",
+    blurb: "Whitespace, thin rules and unadorned type.",
+  },
+  {
+    id: "bold",
+    label: "Bold",
+    blurb: "Strong accents, heavy type and confident headlines.",
+  },
+  {
+    id: "elegant",
+    label: "Elegant",
+    blurb: "Refined serif feel with a subtle double-rule masthead.",
+  },
 ] as const;
 
 export type InvoiceTemplateId = (typeof INVOICE_TEMPLATES)[number]["id"];
+
+/** Document fonts available for the invoice (screen + PDF). Each ships a
+    static TTF in /public/fonts so nothing depends on a CDN and the PDF can
+    embed them offline. 'roboto' is the bundled pdfmake font. */
+export const DOC_FONTS = [
+  { id: "roboto", label: "Roboto", blurb: "The bundled default — clean and does not weigh the PDF.", weights: 1 },
+  { id: "poppins", label: "Poppins", blurb: "Friendly, geometric sans — great for modern invoices.", weights: 2 },
+  { id: "tinos", label: "Tinos", blurb: "A classic, serif-like book face for a traditional look.", weights: 2 },
+] as const;
+
+export type DocFontId = (typeof DOC_FONTS)[number]["id"];
+
+/** CSS font-family stacks for each doc font family ("" = inherited default). */
+export const FONT_STACKS: Record<DocFontId, string> = {
+  roboto: "",
+  poppins: "Poppins, ui-sans-serif, system-ui, sans-serif",
+  tinos: "Tinos, Georgia, 'Times New Roman', serif",
+};
 
 /** Lightweight visual treats applied on top of a template (spec §17). */
 export const INVOICE_PERSONALITIES = [

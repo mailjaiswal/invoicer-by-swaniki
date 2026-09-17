@@ -9,6 +9,7 @@ import { formatDate, formatMoney } from "@/lib/formatting";
 import { taxLabel } from "@/lib/calculations";
 import { buildReceiptNumber } from "@/lib/print";
 import { buildUpiUrl, isValidUpiId } from "@/lib/upi";
+import { type DocFontId } from "@/lib/constants";
 import type QRCode from "qrcode";
 
 let qrApi: typeof QRCode | undefined;
@@ -40,6 +41,74 @@ async function getPdfMake(): Promise<PdfMakeModule> {
   api.addFontContainer(container);
   pdfMakeApi = api;
   return pdfMakeApi;
+}
+
+/** Font family key used by pdfmake for each selectable document font. */
+const DOC_FONT_FAMILIES: Record<DocFontId, string> = {
+  roboto: "Roboto",
+  poppins: "Poppins",
+  tinos: "Tinos",
+};
+
+/** Vendored TTF assets that back the PDF font families (see DOC_FONTS). */
+const DOC_FONT_ASSETS: Record<DocFontId, { family: string; regular: string; bold?: string }> = {
+  roboto: { family: "Roboto", regular: "" },
+  poppins: {
+    family: "Poppins",
+    regular: "/fonts/Poppins-Regular.ttf",
+    bold: "/fonts/Poppins-Bold.ttf",
+  },
+  tinos: {
+    family: "Tinos",
+    regular: "/fonts/Tinos-Regular.ttf",
+    bold: "/fonts/Tinos-Bold.ttf",
+  },
+};
+
+const registeredFonts = new Set<string>();
+
+/**
+ * Register a vendored font family into pdfmake's virtual file system so the
+ * PDF can embed it offline. Roboto is bundled with the engine already.
+ */
+async function ensureDocFont(font: DocFontId): Promise<void> {
+  const spec = DOC_FONT_ASSETS[font];
+  if (!spec || font === "roboto" || registeredFonts.has(spec.family)) return;
+  const api = await getPdfMake();
+  const toB64 = async (path: string): Promise<string> => {
+    const res = await fetch(path);
+    const buf = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+    }
+    return btoa(binary);
+  };
+  const regularKey = `${spec.family}-Regular.ttf`;
+  const boldKey = spec.bold ? `${spec.family}-Bold.ttf` : regularKey;
+  const vfs: Record<string, string> = { [regularKey]: await toB64(spec.regular) };
+  if (spec.bold) vfs[boldKey] = await toB64(spec.bold);
+  api.addFontContainer({
+    vfs,
+    fonts: {
+      [spec.family]: {
+        normal: regularKey,
+        bold: boldKey,
+        italics: regularKey,
+        bolditalics: boldKey,
+      },
+    },
+  });
+  registeredFonts.add(spec.family);
+}
+
+/** Resolve the configured doc font to a safe pdfmake family key. */
+function docFontFamily(settings?: AppSettings): string {
+  const font = settings?.docFont;
+  const valid = !!font && DOC_FONT_FAMILIES[font] !== undefined;
+  return valid ? DOC_FONT_FAMILIES[font!] : "Roboto";
 }
 
 /** Safe PDF file name from an invoice/receipt number (letters, digits, dash). */
@@ -156,14 +225,18 @@ export function buildInvoiceDocDef(
   const template = settings?.defaultTemplate ?? "modern";
   const isClassic = template === "classic";
   const isCompact = template === "compact";
+  const isMinimal = template === "minimal";
+  const isBold = template === "bold";
+  const isElegant = template === "elegant";
   const personality = settings?.personality ?? "professional";
-  const isMinimal = personality === "minimal";
+  const isMinimalPersonality = personality === "minimal";
   const isFriendly = personality === "friendly";
   const brand = settings?.accentColor?.trim() || BRAND;
   const logoPosition = business?.logoPosition ?? "left";
   const logo =
     business?.logo && logoPosition !== "none" ? business.logo : undefined;
-  const moneyFont = isCompact ? 9 : 10;
+  const font = docFontFamily(settings);
+  const moneyFont = isCompact || isMinimal ? 9 : isBold ? 11 : 10;
 
   const taxRows: Array<{ label: string; amount: number }> = [];
   if (invoice.taxBreakup.cgst)
@@ -200,17 +273,63 @@ export function buildInvoiceDocDef(
       : []),
   ];
 
+  const businessNameSize =
+    isCompact ? 14 : isMinimal ? 15 : isBold ? 20 : isElegant ? 16 : 18;
+  const invoiceTitleSize =
+    isCompact ? 14 : isMinimal ? 18 : isBold ? 26 : isElegant ? 15 : 22;
+
+  const topRule =
+    isBold
+      ? [
+          {
+            canvas: [
+              {
+                type: "line",
+                x1: 0,
+                y1: 1.5,
+                x2: 519,
+                y2: 1.5,
+                lineWidth: 3,
+                lineColor: brand,
+              },
+            ],
+            margin: margin(0, 0, 18),
+          },
+        ]
+      : isElegant
+        ? [
+            {
+              canvas: [
+                { type: "line", x1: 0, y1: 0, x2: 519, y2: 0, lineWidth: 0.7, lineColor: LINE },
+                { type: "line", x1: 0, y1: 2.2, x2: 519, y2: 2.2, lineWidth: 0.7, lineColor: LINE },
+              ],
+              margin: margin(0, 0, 18),
+            },
+          ]
+        : isClassic
+          ? [
+              {
+                canvas: [
+                  { type: "line", x1: 0, y1: 0, x2: 519, y2: 0, lineWidth: 1, lineColor: brand },
+                ],
+                margin: margin(0, 0, 18),
+              },
+            ]
+          : [];
+
   return {
     pageSize: "A4",
-    pageMargins: (isCompact || isMinimal
+    pageMargins: (isCompact || isMinimal || isMinimalPersonality
       ? [24, 24, 24, 28]
-      : [36, 36, 36, 32]) as [number, number, number, number],
+      : isElegant
+        ? [40, 40, 40, 36]
+        : [36, 36, 36, 32]) as [number, number, number, number],
     info: {
       title: `Invoice ${number}`,
       author: business?.name || "Invoicer by Swaniki",
       subject: invoice.customerSnapshot.name || undefined,
     },
-    defaultStyle: { fontSize: 9, color: INK },
+    defaultStyle: { fontSize: 9, color: INK, font },
     content: [
       ...(logo && (logoPosition === "center" || logoPosition === "right")
         ? [
@@ -233,9 +352,10 @@ export function buildInvoiceDocDef(
                 : []),
               {
                 text: business?.name?.trim() || "Your Business",
-                fontSize: isCompact ? 14 : 18,
+                fontSize: businessNameSize,
                 bold: true,
                 color: INK,
+                characterSpacing: isElegant ? 0.7 : 0,
               },
               {
                 text: business?.address?.trim() || " ",
@@ -254,22 +374,23 @@ export function buildInvoiceDocDef(
             ],
           },
           {
-            width: isCompact ? 150 : 170,
+            width: isCompact ? 150 : isElegant ? 120 : 170,
             stack: [
               {
                 text: "INVOICE",
-                fontSize: isCompact ? 14 : 22,
+                fontSize: invoiceTitleSize,
                 bold: true,
-                color: brand,
+                color: isBold ? brand : isElegant ? MUTED : brand,
                 alignment: "right",
-                characterSpacing: isClassic ? 1.4 : 0,
+                characterSpacing: isClassic ? 1.4 : isElegant ? 2.2 : isBold ? 1.8 : 0,
               },
               {
                 text: number,
-                fontSize: isCompact ? 10 : 11,
+                fontSize: isCompact ? 10 : isBold ? 12 : isElegant ? 9.5 : 11,
                 bold: true,
                 alignment: "right",
                 margin: margin(3, 0, 0),
+                color: isElegant ? MUTED : INK,
               },
               {
                 text: `Issued: ${invoice.invoiceDate ? formatDate(invoice.invoiceDate) : "—"}`,
@@ -295,31 +416,14 @@ export function buildInvoiceDocDef(
             ],
           },
         ],
-        columnGap: isCompact ? 12 : 16,
+        columnGap: isCompact ? 12 : isElegant ? 10 : 16,
         margin: margin(0, 0, isCompact ? 10 : 18),
       },
 
-      ...(isClassic
-        ? [
-            {
-              canvas: [
-                {
-                  type: "line",
-                  x1: 0,
-                  y1: 0,
-                  x2: 519,
-                  y2: 0,
-                  lineWidth: 1,
-                  lineColor: brand,
-                },
-              ],
-              margin: margin(0, 0, 18),
-            },
-          ]
-        : []),
+      ...topRule,
 
       {
-        ...(isClassic ? cardFlat : card)([
+        ...(isClassic || isElegant || isMinimal ? cardFlat : card)([
           sectionLabel("BILLED TO"),
           {
             text: invoice.customerSnapshot.name || "Customer",
@@ -345,12 +449,12 @@ export function buildInvoiceDocDef(
           widths: ["*", 32, 74, 62, 44, 84],
           body: [
             [
-              { text: "Description", bold: true, color: MUTED, fontSize: 8 },
-              { text: "Qty", bold: true, color: MUTED, alignment: "right", fontSize: 8 },
-              { text: "Rate", bold: true, color: MUTED, alignment: "right", fontSize: 8 },
-              { text: "Tax", bold: true, color: MUTED, alignment: "right", fontSize: 8 },
-              { text: "Disc", bold: true, color: MUTED, alignment: "right", fontSize: 8 },
-              { text: "Amount", bold: true, color: MUTED, alignment: "right", fontSize: 8 },
+              { text: "Description", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
+              { text: "Qty", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
+              { text: "Rate", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
+              { text: "Tax", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
+              { text: "Disc", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
+              { text: "Amount", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
             ],
             ...invoice.items.map((item) => [
               {
@@ -388,7 +492,13 @@ export function buildInvoiceDocDef(
           paddingTop: () => 5,
           paddingBottom: () => 6,
           fillColor: (rowIndex: number) =>
-            rowIndex === 0 ? HEADER_FILL : null,
+            rowIndex === 0
+              ? isBold
+                ? "#1c1917"
+                : isMinimal || isElegant
+                  ? null
+                  : HEADER_FILL
+              : null,
         },
         margin: margin(0, 0, 2),
       },
@@ -406,14 +516,14 @@ export function buildInvoiceDocDef(
                   width: "*",
                   color: row.bold ? INK : MUTED,
                   bold: !!row.bold,
-                  fontSize: row.bold ? 11 : 9,
+                  fontSize: row.bold ? (isBold ? 12 : 11) : 9,
                 },
                 {
                   text: row.value,
                   width: "auto",
                   color: row.color ?? INK,
                   bold: !!row.bold,
-                  fontSize: row.bold ? 12 : 9,
+                  fontSize: row.bold ? (isBold ? 14 : 12) : 9,
                 },
               ],
             })),
@@ -486,6 +596,21 @@ export function buildInvoiceDocDef(
             },
           ]
         : []),
+
+      {
+        text: "Generated with Invoicer by Swaniki · free, offline & privacy-first",
+        alignment: "center",
+        fontSize: 8,
+        color: FAINT,
+        margin: margin(20, 0, 0),
+      },
+      {
+        text: "Not tax or legal advice — verify for your jurisdiction before publishing.",
+        alignment: "center",
+        fontSize: 7,
+        color: FAINT,
+        margin: margin(3, 0, 0),
+      },
     ],
   };
 }
@@ -523,6 +648,7 @@ export async function generateInvoicePdf(
   business?: Business,
   settings?: AppSettings,
 ): Promise<void> {
+  await ensureDocFont(settings?.docFont ?? "roboto");
   const pdfMake = await getPdfMake();
   const upiQrDataUrl = await buildUpiQrDataUrl(invoice, business);
   pdfMake
@@ -544,6 +670,7 @@ export async function renderInvoicePdfFile(
   business?: Business,
   settings?: AppSettings,
 ): Promise<InvoicePdfFile> {
+  await ensureDocFont(settings?.docFont ?? "roboto");
   const pdfMake = await getPdfMake();
   const upiQrDataUrl = await buildUpiQrDataUrl(invoice, business);
   const name = buildPdfFileName(invoice.invoiceNumber || "Preview");
@@ -568,6 +695,7 @@ export function buildReceiptDocDef(
   const methodLabel = invoice.payment.method
     ? METHOD_LABELS[invoice.payment.method] ?? invoice.payment.method
     : "N/A";
+  const font = docFontFamily(settings);
 
   const detailRows = [
     { label: "Amount received", value: money(amountReceived) },
@@ -584,7 +712,7 @@ export function buildReceiptDocDef(
       author: business?.name || "Invoicer by Swaniki",
       subject: invoice.customerSnapshot.name || undefined,
     },
-    defaultStyle: { fontSize: 9, color: INK },
+    defaultStyle: { fontSize: 9, color: INK, font },
     content: [
       {
         columns: [
@@ -692,6 +820,13 @@ export function buildReceiptDocDef(
         alignment: "center",
         margin: margin(24, 0, 0),
       },
+      {
+        text: "Not tax or legal advice — verify for your jurisdiction before publishing.",
+        fontSize: 7,
+        color: FAINT,
+        alignment: "center",
+        margin: margin(3, 0, 0),
+      },
     ],
   };
 }
@@ -702,6 +837,7 @@ export async function generateReceiptPdf(
   business?: Business,
   settings?: AppSettings,
 ): Promise<void> {
+  await ensureDocFont(settings?.docFont ?? "roboto");
   const pdfMake = await getPdfMake();
   pdfMake
     .createPdf(buildReceiptDocDef(invoice, business, settings))

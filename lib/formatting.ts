@@ -8,11 +8,12 @@ export function formatMoney(
   currency: CurrencyCode = "INR"
 ): string {
   const config = CURRENCIES[currency] ?? CURRENCIES.INR;
+  const digits = config.digits ?? 2;
   try {
     const formatted = new Intl.NumberFormat(config.locale, {
       style: "currency",
       currency: config.code,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: digits,
       minimumFractionDigits: 0,
     }).format(amount);
     return formatted;

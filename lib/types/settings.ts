@@ -1,6 +1,7 @@
 import type { CurrencyCode, ThemeMode, TaxMode } from "./misc";
+import type { DocFontId } from "@/lib/constants";
 
-export type InvoiceTemplateId = "modern" | "classic" | "compact";
+export type InvoiceTemplateId = "modern" | "classic" | "compact" | "minimal" | "bold" | "elegant";
 
 export type InvoicePersonality = "professional" | "minimal" | "friendly";
 
@@ -18,6 +19,7 @@ export interface AppSettings {
   theme: ThemeMode;
   accentColor: string;
   personality?: InvoicePersonality;
+  docFont?: DocFontId;
   createdAt: number;
   updatedAt: number;
 }

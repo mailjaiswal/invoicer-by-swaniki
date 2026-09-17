@@ -81,6 +81,7 @@ export function defaultSettings(): AppSettings {
     defaultTerms: DEFAULT_SETTINGS.defaultTerms,
     defaultTemplate: DEFAULT_SETTINGS.defaultTemplate,
     defaultPaymentTermsDays: DEFAULT_SETTINGS.defaultPaymentTermsDays,
+    docFont: DEFAULT_SETTINGS.docFont,
     theme: "system",
     accentColor: "#1a6553",
     createdAt: timestamp,

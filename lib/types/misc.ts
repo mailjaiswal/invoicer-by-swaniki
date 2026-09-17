@@ -1,7 +1,9 @@
 export type ThemeMode = "light" | "dark" | "system";
 export type TaxMode = "none" | "single" | "gst" | "custom";
 
-export type CurrencyCode = "INR" | "USD" | "EUR" | "GBP" | "AED";
+/** Single source of truth: keyed off the CURRENCIES registry in constants. */
+import type { CurrencyCode } from "@/lib/constants";
+export type { CurrencyCode };
 
 export type InvoiceStatus =
   | "draft"

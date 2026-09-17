@@ -1,6 +1,6 @@
 "use client";
 
-import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon } from "lucide-react";
+import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon, Banknote, Type } from "lucide-react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import {
   Card,
@@ -14,10 +14,14 @@ import { Input } from "@/components/common/input";
 import { useApp, useToast } from "@/lib/providers";
 import {
   ACCENT_COLOR_SWATCHES,
+  CURRENCIES,
   DEFAULT_ACCENT_COLOR,
+  DOC_FONTS,
   INVOICE_PERSONALITIES,
   INVOICE_TEMPLATES,
   LOGO_POSITIONS,
+  type CurrencyCode,
+  type DocFontId,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { InvoicePersonality, InvoiceTemplateId } from "@/lib/types";
@@ -36,6 +40,8 @@ export function AppearanceSection() {
     settings?.personality ?? "professional";
   const accent = settings?.accentColor || DEFAULT_ACCENT_COLOR;
   const logoPosition = business?.logoPosition || "left";
+  const currency = settings?.currency ?? "INR";
+  const docFont = settings?.docFont ?? "roboto";
 
   const setTemplate = (value: string) => {
     const id = value as InvoiceTemplateId;
@@ -65,6 +71,22 @@ export function AppearanceSection() {
     updateBusiness({ logoPosition: id })
       .then(() => showToast("Logo placement saved.", "success"))
       .catch(() => showToast("Couldn't save the logo placement.", "error"));
+  };
+
+  const setCurrency = (value: string) => {
+    const id = value as CurrencyCode;
+    if (!(id in CURRENCIES)) return;
+    updateSettings({ currency: id })
+      .then(() => showToast("Invoice currency saved.", "success"))
+      .catch(() => showToast("Couldn't save the currency.", "error"));
+  };
+
+  const setDocFont = (value: string) => {
+    const id = value as DocFontId;
+    if (!DOC_FONTS.some((f) => f.id === id)) return;
+    updateSettings({ docFont: id })
+      .then(() => showToast("Invoice font saved.", "success"))
+      .catch(() => showToast("Couldn't save the font.", "error"));
   };
 
   return (
@@ -129,6 +151,57 @@ export function AppearanceSection() {
               </button>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Type className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Invoice font
+          </CardTitle>
+          <CardDescription>
+            The typeface used on invoices and PDFs. Fonts are embedded
+            directly into the PDF so they work fully offline.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Select value={docFont} onChange={(e) => setDocFont(e.target.value)} aria-label="Invoice font">
+            {DOC_FONTS.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.label}
+              </option>
+            ))}
+          </Select>
+          <p className="text-xs text-stone-500 dark:text-stone-400">
+            {DOC_FONTS.find((f) => f.id === docFont)?.blurb}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Banknote className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Invoice currency
+          </CardTitle>
+          <CardDescription>
+            The default currency for new invoices. You can still track local
+            payment methods in your business details.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Select value={currency} onChange={(e) => setCurrency(e.target.value)} aria-label="Invoice currency">
+            {Object.entries(CURRENCIES).map(([code, cfg]) => (
+              <option key={code} value={code}>
+                {code} · {cfg.symbol}
+              </option>
+            ))}
+          </Select>
+          <p className="text-xs text-stone-400 dark:text-stone-500">
+            UPI payments remain INR-native; other currencies are for
+            invoicing and records.
+          </p>
         </CardContent>
       </Card>
 

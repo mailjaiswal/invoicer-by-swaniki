@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRequire } from "node:module";
-import type { Invoice } from "@/lib/types";
+import type { AppSettings, Invoice } from "@/lib/types";
 import {
   buildInvoiceDocDef,
   buildPdfFileName,
@@ -16,6 +16,18 @@ pdfMakeNode.fonts = {
     bold: "node_modules/pdfmake/fonts/Roboto/Roboto-Medium.ttf",
     italics: "node_modules/pdfmake/fonts/Roboto/Roboto-Italic.ttf",
     bolditalics: "node_modules/pdfmake/fonts/Roboto/Roboto-MediumItalic.ttf",
+  },
+  Poppins: {
+    normal: "public/fonts/Poppins-Regular.ttf",
+    bold: "public/fonts/Poppins-Bold.ttf",
+    italics: "public/fonts/Poppins-Regular.ttf",
+    bolditalics: "public/fonts/Poppins-Bold.ttf",
+  },
+  Tinos: {
+    normal: "public/fonts/Tinos-Regular.ttf",
+    bold: "public/fonts/Tinos-Bold.ttf",
+    italics: "public/fonts/Tinos-Regular.ttf",
+    bolditalics: "public/fonts/Tinos-Bold.ttf",
   },
 };
 
@@ -84,11 +96,61 @@ function sampleInvoice(overrides: Partial<Invoice> = {}): Invoice {
   };
 }
 
+function sampleSettings(
+  overrides: Partial<AppSettings> = {}
+): AppSettings {
+  return {
+    id: "settings",
+    invoicePrefix: "INV",
+    nextInvoiceNumber: 2,
+    invoiceNumberPadding: 4,
+    currency: "INR",
+    taxMode: "gst",
+    defaultTax: null,
+    defaultTerms: "",
+    defaultTemplate: "modern",
+    defaultPaymentTermsDays: 15,
+    theme: "light",
+    accentColor: "#1a6553",
+    createdAt: 0,
+    updatedAt: 0,
+    ...overrides,
+  };
+}
+
 function renderPdf(docDef: unknown): Promise<number> {
   return pdfMakeNode
     .createPdf(docDef)
     .getBuffer()
     .then((buffer: { length: number }) => buffer.length);
+}
+
+/** Flatten every text string in a pdfmake definition tree. */
+function collectText(node: unknown, out: string[] = []): string[] {
+  if (Array.isArray(node)) {
+    for (const item of node) collectText(item, out);
+    return out;
+  }
+  if (node && typeof node === "object") {
+    const obj = node as Record<string, unknown>;
+    if (typeof obj.text === "string") out.push(obj.text);
+    for (const key of Object.keys(obj)) {
+      if (key === "text") continue;
+      collectText(obj[key], out);
+    }
+  }
+  return out;
+}
+
+/** The default font family set on a doc definition, or null. */
+function defaultFont(docDef: unknown): string | null {
+  if (docDef && typeof docDef === "object") {
+    const { defaultStyle } = docDef as Record<string, unknown>;
+    if (defaultStyle && typeof defaultStyle === "object") {
+      return (defaultStyle as Record<string, unknown>).font as string | null;
+    }
+  }
+  return null;
 }
 
 describe("buildPdfFileName", () => {
@@ -309,6 +371,58 @@ describe("pdfmake document definitions", () => {
     );
     expect(bytes).toBeGreaterThan(1000);
   }, 15000);
+
+  const TEMPLATES: AppSettings["defaultTemplate"][] = [
+    "minimal",
+    "bold",
+    "elegant",
+  ];
+
+  for (const template of TEMPLATES) {
+    it(`renders the ${template} template`, async () => {
+      const bytes = await renderPdf(
+        buildInvoiceDocDef(sampleInvoice(), undefined, sampleSettings({ defaultTemplate: template }))
+      );
+      expect(bytes).toBeGreaterThan(1000);
+    }, 15000);
+  }
+
+  it("selects the configured font family on the invoice", () => {
+    const doc = buildInvoiceDocDef(sampleInvoice(), undefined, sampleSettings({ docFont: "poppins" }));
+    expect(defaultFont(doc)).toBe("Poppins");
+    const tinos = buildInvoiceDocDef(sampleInvoice(), undefined, sampleSettings({ docFont: "tinos" }));
+    expect(defaultFont(tinos)).toBe("Tinos");
+    const roboto = buildInvoiceDocDef(sampleInvoice(), undefined, sampleSettings());
+    expect(defaultFont(roboto)).toBe("Roboto");
+  });
+
+  it("selects the configured font family on the receipt", () => {
+    const doc = buildReceiptDocDef(sampleInvoice(), undefined, sampleSettings({ docFont: "poppins" }));
+    expect(defaultFont(doc)).toBe("Poppins");
+    const roboto = buildReceiptDocDef(sampleInvoice(), undefined, sampleSettings());
+    expect(defaultFont(roboto)).toBe("Roboto");
+  });
+
+  it("renders each doc font family to a buffer", async () => {
+    for (const font of ["poppins", "tinos"] as const) {
+      const invoice = sampleInvoice();
+      await expect(
+        renderPdf(buildInvoiceDocDef(invoice, undefined, sampleSettings({ docFont: font })))
+      ).resolves.toBeGreaterThan(1000);
+    }
+  }, 20000);
+
+  it("includes the legal disclaimer on the invoice", () => {
+    const doc = buildInvoiceDocDef(sampleInvoice(), undefined, sampleSettings());
+    const text = collectText(doc);
+    expect(text.some((t) => t.includes("Not tax or legal advice"))).toBe(true);
+  });
+
+  it("includes the legal disclaimer on the receipt", () => {
+    const doc = buildReceiptDocDef(sampleInvoice(), undefined, sampleSettings());
+    const text = collectText(doc);
+    expect(text.some((t) => t.includes("Not tax or legal advice"))).toBe(true);
+  });
 });
 
 const PNG_1PX =

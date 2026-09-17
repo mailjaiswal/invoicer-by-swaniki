@@ -1,6 +1,7 @@
 import { formatMoney } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
 import { buildReceiptNumber } from "@/lib/print";
+import { DOC_FONTS, FONT_STACKS, type DocFontId } from "@/lib/constants";
 import type {
   AppSettings,
   Business,
@@ -43,9 +44,16 @@ export function ReceiptDocument({
       ? new Date()
       : null;
   const method = invoice.payment.method;
+  const docFont: DocFontId =
+    settings?.docFont && DOC_FONTS.some((f) => f.id === settings!.docFont)
+      ? settings!.docFont
+      : "roboto";
 
   return (
-    <div className={cn(className)}>
+    <div
+      className={cn(className)}
+      style={FONT_STACKS[docFont] ? { fontFamily: FONT_STACKS[docFont] } : undefined}
+    >
       <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white text-stone-900 shadow-sm ring-1 ring-stone-900/5 print:overflow-visible print:rounded-none print:border-0 print:shadow-none print:ring-0">
         <div className="flex flex-col gap-6 p-6 sm:p-8">
           {/* Header */}

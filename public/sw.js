@@ -3,7 +3,7 @@
    Offline strategy: precache the app shell (every route), then cache
    everything else on first use. Bump VERSION to invalidate clients. */
 
-const VERSION = "v1.0.0-m11";
+const VERSION = "v1.0.0-m12";
 const CACHE = `invoicer-swaniki-${VERSION}`;
 
 const SHELL = [
@@ -21,6 +21,10 @@ const SHELL = [
   "/icons/icon-512.png",
   "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon-180.png",
+  "/fonts/Poppins-Regular.ttf",
+  "/fonts/Poppins-Bold.ttf",
+  "/fonts/Tinos-Regular.ttf",
+  "/fonts/Tinos-Bold.ttf",
 ];
 
 self.addEventListener("install", (event) => {
