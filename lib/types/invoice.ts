@@ -11,6 +11,7 @@ export interface InvoiceItem {
   productId?: string;
   name: string;
   description?: string;
+  comments?: string;
   quantity: number;
   unit: string;
   rate: number;

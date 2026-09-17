@@ -139,6 +139,90 @@ export async function getInvoice(id: string): Promise<Invoice | undefined> {
   return db.invoices.get(id);
 }
 
+export interface SaveInvoiceDraftOptions {
+  /** A user-typed number to keep on the draft (used verbatim if valid). */
+  manualNumber?: string;
+  customerId?: string | null;
+}
+
+/**
+ * Persist a work-in-progress invoice with `status: "draft"`. No number from the
+ * business sequence is reserved; the preview number is only a label until the
+ * draft is generated. Totals are recomputed from the kept line items.
+ */
+export async function saveInvoiceDraft(
+  draft: InvoiceDraft,
+  options: SaveInvoiceDraftOptions = {},
+  existingId?: string
+): Promise<Invoice> {
+  const kept = draft.items.filter(
+    (item) => item.name.trim().length > 0 && item.quantity > 0
+  );
+  const manualValue = options.manualNumber?.trim();
+  const calc = calcInvoiceTotals(kept);
+  const items: InvoiceItem[] = kept.map((item, index) => ({
+    ...item,
+    description: item.description?.trim() || undefined,
+    comments: item.comments?.trim() || undefined,
+    lineTotal: calc.lines[index].lineTotal,
+  }));
+
+  const timestamp = now();
+  const existing = existingId ? await db.invoices.get(existingId) : undefined;
+  const fallbackNumber = existing?.invoiceNumber
+    ? existing.invoiceNumber
+    : `DRAFT-${formatDateInput(new Date())
+        .replaceAll("-", "")
+        .slice(4)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+  let invoiceNumber = fallbackNumber;
+  if (manualValue) {
+    if (!isValidInvoiceNumberFormat(manualValue)) {
+      throw new DataError(
+        "That invoice number isn’t valid. Use letters, numbers and simple separators."
+      );
+    }
+    const clash = await db.invoices
+      .where("invoiceNumber")
+      .equals(manualValue)
+      .first();
+    if (clash && clash.id !== existingId) {
+      throw new DataError(`Invoice number ${manualValue} is already in use.`);
+    }
+    invoiceNumber = manualValue;
+  }
+
+  const draftInvoice: Invoice = {
+    id: existingId ?? uid("inv"),
+    invoiceNumber,
+    customerId: options.customerId ?? draft.customerId ?? null,
+    customerSnapshot: draft.customerSnapshot ?? { name: "" },
+    items,
+    invoiceDate: draft.invoiceDate || formatDateInput(new Date()),
+    dueDate: draft.dueDate || null,
+    subtotal: calc.totals.subtotal,
+    discount: calc.totals.discount,
+    taxMode: draft.taxMode,
+    taxBreakup: taxBreakupFromTotals(calc.totals),
+    taxableAmount: calc.totals.taxableAmount,
+    taxTotal: calc.totals.taxTotal,
+    total: calc.totals.total,
+    payment: {
+      status: "unpaid",
+      amountPaid: 0,
+      balance: calc.totals.total,
+    },
+    notes: draft.notes?.trim() || undefined,
+    terms: draft.terms?.trim() || undefined,
+    template: draft.template || "modern",
+    createdAt: existing?.createdAt ?? timestamp,
+    updatedAt: timestamp,
+    status: "draft",
+  };
+  await db.invoices.put(draftInvoice);
+  return draftInvoice;
+}
+
 export function listInvoices(): Promise<Invoice[]> {
   return db.invoices.orderBy("createdAt").reverse().toArray();
 }

@@ -470,6 +470,17 @@ export function buildInvoiceDocDef(
                         },
                       ]
                     : []),
+                  ...(item.comments
+                    ? [
+                        {
+                          text: item.comments,
+                          italics: true,
+                          fontSize: 8,
+                          color: MUTED,
+                          margin: margin(1, 1, 0),
+                        },
+                      ]
+                    : []),
                 ],
               },
               {

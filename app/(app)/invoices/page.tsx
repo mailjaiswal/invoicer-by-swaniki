@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Trash2,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { useAppCurrency, useToast } from "@/lib/providers";
 import { listInvoices, markInvoicePaid, deleteInvoice } from "@/lib/db/invoices";
@@ -223,14 +224,25 @@ export default function InvoicesPage() {
                     </span>
                   </Link>
                   <div className="mt-2 flex justify-end gap-1 border-t border-stone-100 pt-2 dark:border-stone-800">
-                    <Link
-                      href={`/invoice/new?duplicate=${invoice.id}`}
-                      className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
-                      aria-label={`Duplicate ${invoice.invoiceNumber}`}
-                    >
-                      <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                      Duplicate
-                    </Link>
+                    {derived === "draft" ? (
+                      <Link
+                        href={`/invoice/new?edit=${invoice.id}`}
+                        className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+                        aria-label={`Resume editing ${invoice.invoiceNumber}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        Resume editing
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/invoice/new?duplicate=${invoice.id}`}
+                        className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+                        aria-label={`Duplicate ${invoice.invoiceNumber}`}
+                      >
+                        <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                        Duplicate
+                      </Link>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleMarkPaid(invoice.id)}

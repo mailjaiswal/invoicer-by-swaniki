@@ -418,6 +418,37 @@ describe("pdfmake document definitions", () => {
     expect(text.some((t) => t.includes("Not tax or legal advice"))).toBe(true);
   });
 
+  it("renders per-item comments under the item name", () => {
+    const doc = buildInvoiceDocDef(
+      sampleInvoice({
+        items: [
+          {
+            id: "item-1",
+            name: "Website design",
+            description: "Homepage + 4 inner pages",
+            comments: "Includes setup, 2 revisions and a domain.",
+            quantity: 2,
+            unit: "pages",
+            rate: 12000,
+            taxType: "gst_cgst_sgst",
+            taxRate: 18,
+            discount: 5,
+            lineTotal: 25080,
+          },
+        ],
+      }),
+      undefined,
+      sampleSettings()
+    );
+    const text = collectText(doc);
+    expect(text.some((t) => t === "Website design")).toBe(true);
+    expect(
+      text.some((t) =>
+        t.includes("Includes setup, 2 revisions and a domain.")
+      )
+    ).toBe(true);
+  });
+
   it("includes the legal disclaimer on the receipt", () => {
     const doc = buildReceiptDocDef(sampleInvoice(), undefined, sampleSettings());
     const text = collectText(doc);

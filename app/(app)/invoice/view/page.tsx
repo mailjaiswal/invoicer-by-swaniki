@@ -584,7 +584,7 @@ function InvoiceView() {
                 onClick={() => router.push(`/invoice/new?edit=${invoice.id}`)}
               >
                 <FilePlus2 className="h-4 w-4" aria-hidden="true" />
-                Edit as new invoice
+                {status === "draft" ? "Resume editing" : "Edit as new invoice"}
               </Button>
             </CardContent>
           </Card>

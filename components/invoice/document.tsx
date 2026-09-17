@@ -321,6 +321,9 @@ export function InvoiceDocument({
                       {!!item.description && (
                         <p className={cn("mt-0.5 text-stone-500", isCompact ? "text-[11px]" : "text-xs")}>{item.description}</p>
                       )}
+                      {!!item.comments && (
+                        <p className={cn("mt-0.5 whitespace-pre-line italic text-stone-500", isCompact ? "text-[11px]" : "text-xs")}>{item.comments}</p>
+                      )}
                     </td>
                     <td className="py-3 pr-3 text-right text-stone-700">{trimNumber(item.quantity)}{item.unit ? ` ${item.unit}` : ""}</td>
                     <td className="py-3 pr-3 text-right text-stone-700">{money(item.rate)}</td>

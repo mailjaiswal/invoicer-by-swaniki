@@ -10,6 +10,7 @@ export interface BuilderLine {
   productId?: string;
   name: string;
   description?: string;
+  comments?: string;
   quantity: number;
   unit: string;
   rate: number;
@@ -118,6 +119,7 @@ export function stateFromInvoice(
       productId: item.productId,
       name: item.name,
       description: item.description,
+      comments: item.comments,
       quantity: item.quantity,
       unit: item.unit,
       rate: item.rate,
@@ -172,6 +174,7 @@ export function normalizeBuilderState(
       productId: str(item.productId) || undefined,
       name: str(item.name),
       description: str(item.description) || undefined,
+      comments: str(item.comments) || undefined,
       quantity: num(item.quantity) || 1,
       unit: str(item.unit),
       rate: num(item.rate),

@@ -11,6 +11,7 @@ import {
 } from "@/components/common/card";
 import { Input } from "@/components/common/input";
 import { Label } from "@/components/common/label";
+import { Textarea } from "@/components/common/textarea";
 import { Select } from "@/components/common/select";
 import { Button } from "@/components/common/button";
 import { Sheet } from "@/components/common/sheet";
@@ -332,6 +333,20 @@ function ItemCard({
             {formatMoney(calc.lineTotal, currency)}
           </p>
         </div>
+      </div>
+
+      <div className="mt-3">
+        <Label htmlFor={`comments-${line.id}`}>
+          Comments / included with this item{" "}
+          <span className="font-normal text-stone-400">(optional)</span>
+        </Label>
+        <Textarea
+          id={`comments-${line.id}`}
+          rows={2}
+          placeholder="e.g. Includes setup, 2 revisions and a domain."
+          value={line.comments ?? ""}
+          onChange={(e) => onUpdate({ comments: e.target.value })}
+        />
       </div>
     </div>
   );
