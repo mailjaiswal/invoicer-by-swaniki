@@ -372,7 +372,7 @@ function ItemCard({
         )}
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
           <Label htmlFor={`frequency-${line.id}`}>Frequency</Label>
           <Input
@@ -400,15 +400,6 @@ function ItemCard({
             onChange={(e) =>
               onUpdate({ quantity: parseFloatOrZero(e.target.value, 1) })
             }
-          />
-        </div>
-        <div>
-          <Label htmlFor={`unit-${line.id}`}>Unit</Label>
-          <Input
-            id={`unit-${line.id}`}
-            placeholder="hour"
-            value={line.unit}
-            onChange={(e) => onUpdate({ unit: e.target.value })}
           />
         </div>
         <div>

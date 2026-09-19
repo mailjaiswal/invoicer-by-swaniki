@@ -27,6 +27,7 @@ export interface BuilderLine {
 /** Common billing cadences offered as frequency suggestions. */
 export const FREQUENCY_OPTIONS = [
   "One-time",
+  "Hourly",
   "Daily",
   "Weekly",
   "Monthly",
