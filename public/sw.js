@@ -1,9 +1,11 @@
 ﻿/* Invoicer by Swaniki — service worker.
    Served as a static asset so it works on any host (Vercel, plain static).
-   Offline strategy: precache the app shell (every route), then cache
-   everything else on first use. Bump VERSION to invalidate clients. */
+   Strategy: precache the app shell (every route), then serve navigations
+   network-first (cache on success) so deployed updates reach clients on the
+   next reload. Static hashed chunks are cache-first. While offline the shell
+   cache keeps the app fully usable. Bump VERSION to force a fresh shell. */
 
-const VERSION = "v1.0.0-m16b";
+const VERSION = "v1.0.0-m16c";
 const CACHE = `invoicer-swaniki-${VERSION}`;
 
 const SHELL = [
@@ -32,7 +34,15 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
+      .then((cache) =>
+        Promise.all(
+          SHELL.map((url) =>
+            cache.add(url).catch(() => {
+              /* A single failed route must not block activation. */
+            })
+          )
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });
@@ -67,29 +77,27 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Navigations: shell cache → network (cache on success) → offline shell.
+  // Navigations: network first (so updates reach clients), cache on success,
+  // and fall back to the offline shell when the network is unavailable.
   if (request.mode === "navigate") {
     event.respondWith(
-      caches
-        .match(request)
-        .then((cached) => cached || resolveRequest(request))
-        .then((cached) => {
-          if (cached) return cached;
-          return fetch(request)
-            .then((response) => {
-              if (response.ok) {
-                const clone = response.clone();
-                caches.open(CACHE).then((cache) => cache.put(request, clone));
-              }
-              return response;
-            })
-            .catch(() => caches.match("/"));
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(request, clone));
+          }
+          return response;
         })
+        .catch(() =>
+          resolveRequest(request).then((cached) => cached || caches.match("/"))
+        )
     );
     return;
   }
 
-  // Static assets: cache-first, fill on the fly, never break the app.
+  // Static assets (hashed chunks are immutable): cache-first, fill on the
+  // fly, never break the app.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

@@ -14,7 +14,9 @@ export function ServiceWorkerRegister() {
         .getRegistration()
         .then((existing) => {
           if (existing) notifyOnUpdate(existing);
-          return navigator.serviceWorker.register("/sw.js");
+          return navigator.serviceWorker.register("/sw.js", {
+            updateViaCache: "none",
+          });
         })
         .then((reg) => reg && notifyOnUpdate(reg))
         .catch(() => {
