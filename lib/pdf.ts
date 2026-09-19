@@ -473,13 +473,13 @@ export function buildInvoiceDocDef(
         table: {
           headerRows: 1,
           widths: [
-            "*",
+            Math.round(contentWidth * 0.38),
             ...(showFrequencyCol ? [48] : []),
             24,
             56,
             ...(showTaxCol ? [44] : []),
             ...(showDiscountCol ? [48] : []),
-            72,
+            "*",
           ],
           body: [
             [

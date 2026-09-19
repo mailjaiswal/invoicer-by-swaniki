@@ -60,19 +60,19 @@ export function InvoiceDocument({
   const showFrequency = lineItems.some((i) => !!i.frequency?.trim());
   const showTaxColumn = lineItems.some((i) => i.taxType !== "none");
   const showDiscountColumn = lineItems.some((i) => (i.discount ?? 0) > 0);
+  const W_PARTICULARS = 38;
   const W_FREQUENCY = 12;
   const W_QTY = 6;
   const W_RATE = 10;
   const W_TAX = 8;
   const W_DISCOUNT = 6;
-  const W_AMOUNT = 14;
-  const usedOtherWidth =
+  const fixedOtherWidth =
     (showFrequency ? W_FREQUENCY : 0) +
     W_QTY +
     W_RATE +
     (showTaxColumn ? W_TAX : 0) +
-    (showDiscountColumn ? W_DISCOUNT : 0) +
-    W_AMOUNT;
+    (showDiscountColumn ? W_DISCOUNT : 0);
+  const W_AMOUNT = Math.max(16, 100 - W_PARTICULARS - fixedOtherWidth);
 
   const personality: InvoicePersonality =
     INVOICE_PERSONALITIES.some((p) => p.id === settings?.personality)
@@ -356,9 +356,7 @@ export function InvoiceDocument({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] table-fixed border-collapse text-sm">
               <colgroup>
-                <col
-                  style={{ width: `${Math.max(40, 100 - usedOtherWidth)}%` }}
-                />
+                <col style={{ width: `${W_PARTICULARS}%` }} />
                 {showFrequency && (
                   <col style={{ width: `${W_FREQUENCY}%` }} />
                 )}
