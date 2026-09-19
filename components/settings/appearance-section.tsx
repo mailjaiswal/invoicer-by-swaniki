@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon, Banknote, Type, FileSliders, Tags, FileText } from "lucide-react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import {
@@ -125,17 +126,25 @@ export function AppearanceSection() {
 
   const defaultNotes = settings?.defaultNotes ?? "";
   const defaultTerms = settings?.defaultTerms ?? "";
+  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const termsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saveDefaultNotes = (value: string) => {
-    updateSettings({ defaultNotes: value.trim() })
-      .then(() => showToast("Default notes saved.", "success"))
-      .catch(() => showToast("Couldn't save the default notes.", "error"));
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    notesTimer.current = setTimeout(() => {
+      updateSettings({ defaultNotes: value.trim() })
+        .then(() => showToast("Default notes saved.", "success"))
+        .catch(() => showToast("Couldn't save the default notes.", "error"));
+    }, 600);
   };
 
   const saveDefaultTerms = (value: string) => {
-    updateSettings({ defaultTerms: value })
-      .then(() => showToast("Default terms saved.", "success"))
-      .catch(() => showToast("Couldn't save the default terms.", "error"));
+    if (termsTimer.current) clearTimeout(termsTimer.current);
+    termsTimer.current = setTimeout(() => {
+      updateSettings({ defaultTerms: value })
+        .then(() => showToast("Default terms saved.", "success"))
+        .catch(() => showToast("Couldn't save the default terms.", "error"));
+    }, 600);
   };
 
   return (
