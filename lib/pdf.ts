@@ -474,16 +474,18 @@ export function buildInvoiceDocDef(
           headerRows: 1,
           widths: [
             Math.round(contentWidth * 0.38),
+            "*",
             ...(showFrequencyCol ? [48] : []),
             24,
             56,
             ...(showTaxCol ? [44] : []),
             ...(showDiscountCol ? [48] : []),
-            "*",
+            72,
           ],
           body: [
             [
               { text: "Particulars", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
+              { text: "", fontSize: 8 },
               ...(showFrequencyCol
                 ? [{ text: "Frequency", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 }]
                 : []),
@@ -528,6 +530,7 @@ export function buildInvoiceDocDef(
                     : []),
                 ],
               },
+              { text: "", fontSize: 8 },
               ...(showFrequencyCol
                 ? [{
                     text: item.frequency?.trim() || "—",

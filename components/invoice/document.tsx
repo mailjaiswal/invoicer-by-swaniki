@@ -61,18 +61,20 @@ export function InvoiceDocument({
   const showTaxColumn = lineItems.some((i) => i.taxType !== "none");
   const showDiscountColumn = lineItems.some((i) => (i.discount ?? 0) > 0);
   const W_PARTICULARS = 38;
-  const W_FREQUENCY = 12;
+  const W_FREQUENCY = 10;
   const W_QTY = 6;
   const W_RATE = 10;
   const W_TAX = 8;
   const W_DISCOUNT = 6;
-  const fixedOtherWidth =
+  const W_AMOUNT = 14;
+  const numericWidth =
     (showFrequency ? W_FREQUENCY : 0) +
     W_QTY +
     W_RATE +
     (showTaxColumn ? W_TAX : 0) +
-    (showDiscountColumn ? W_DISCOUNT : 0);
-  const W_AMOUNT = Math.max(16, 100 - W_PARTICULARS - fixedOtherWidth);
+    (showDiscountColumn ? W_DISCOUNT : 0) +
+    W_AMOUNT;
+  const W_SPACER = Math.max(0, 100 - W_PARTICULARS - numericWidth);
 
   const personality: InvoicePersonality =
     INVOICE_PERSONALITIES.some((p) => p.id === settings?.personality)
@@ -357,6 +359,7 @@ export function InvoiceDocument({
             <table className="w-full min-w-[680px] table-fixed border-collapse text-sm">
               <colgroup>
                 <col style={{ width: `${W_PARTICULARS}%` }} />
+                <col style={{ width: `${W_SPACER}%` }} />
                 {showFrequency && (
                   <col style={{ width: `${W_FREQUENCY}%` }} />
                 )}
@@ -371,6 +374,7 @@ export function InvoiceDocument({
               <thead>
                 <tr className={cn("border-b text-left", thRowCls, thCellCls)}>
                   <th className="py-2 pr-3 font-semibold">Particulars</th>
+                  <th className="py-2" aria-hidden="true" />
                   {showFrequency && (
                     <th className="py-2 pr-3 font-semibold">Frequency</th>
                   )}
@@ -405,6 +409,7 @@ export function InvoiceDocument({
                         </p>
                       )}
                     </td>
+                    <td className="py-2.5" aria-hidden="true" />
                     {showFrequency && (
                       <td
                         className="break-words py-2.5 pr-3 text-stone-600"
