@@ -467,7 +467,7 @@ export function buildInvoiceDocDef(
       {
         table: {
           headerRows: 1,
-          widths: ["*", 44, 30, 66, 56, 38, 78],
+          widths: ["*", 36, 24, 56, 46, 30, 68],
           body: [
             [
               { text: "Particulars", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },

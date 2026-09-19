@@ -338,13 +338,13 @@ export function InvoiceDocument({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] table-fixed border-collapse text-sm">
               <colgroup>
-                <col style={{ width: "40%" }} />
+                <col style={{ width: "48%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "6%" }} />
                 <col style={{ width: "10%" }} />
                 <col style={{ width: "8%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "10%" }} />
-                <col style={{ width: "8%" }} />
-                <col style={{ width: "12%" }} />
+                <col style={{ width: "6%" }} />
+                <col style={{ width: "14%" }} />
               </colgroup>
               <thead>
                 <tr className={cn("border-b text-left", thRowCls, thCellCls)}>
