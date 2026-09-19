@@ -13,6 +13,8 @@ export interface InvoiceItem {
   name: string;
   description?: string;
   comments?: string;
+  /** How often this line repeats, e.g. "One-time", "Monthly". */
+  frequency?: string;
   quantity: number;
   unit: string;
   rate: number;

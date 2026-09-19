@@ -61,7 +61,7 @@ export default function SettingsPage() {
         <h1 className="font-display text-2xl font-bold tracking-tight text-stone-950 dark:text-white sm:text-3xl">
           Settings
         </h1>
-        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+        <p className="sticky top-0 mt-1 text-sm text-stone-500 dark:text-stone-400">
           Business profile, appearance, backups.
         </p>
       </header>

@@ -20,7 +20,7 @@ import { formatMoney } from "@/lib/formatting";
 import { CURRENCIES, type CurrencyCode } from "@/lib/constants";
 import { uid, cn } from "@/lib/utils";
 import type { Product, TaxType } from "@/lib/types";
-import { isTaxType, lineFromProduct, type BuilderLine } from "./builder-utils";
+import { isTaxType, lineFromProduct, FREQUENCY_OPTIONS, type BuilderLine } from "./builder-utils";
 
 const TAX_OPTIONS: Array<{ value: TaxType; label: string }> = [
   { value: "none", label: "No tax" },
@@ -372,7 +372,22 @@ function ItemCard({
         )}
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div>
+          <Label htmlFor={`frequency-${line.id}`}>Frequency</Label>
+          <Input
+            id={`frequency-${line.id}`}
+            list={`frequency-options-${line.id}`}
+            placeholder="One-time"
+            value={line.frequency ?? ""}
+            onChange={(e) => onUpdate({ frequency: e.target.value })}
+          />
+          <datalist id={`frequency-options-${line.id}`}>
+            {FREQUENCY_OPTIONS.map((option) => (
+              <option key={option} value={option} />
+            ))}
+          </datalist>
+        </div>
         <div>
           <Label htmlFor={`qty-${line.id}`}>Qty</Label>
           <Input

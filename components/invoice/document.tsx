@@ -71,6 +71,8 @@ export function InvoiceDocument({
   const { cgst, sgst, igst } = invoice.taxBreakup;
   const orientation = settings?.pageOrientation ?? "portrait";
   const landscape = orientation === "landscape";
+  /** Screen approximation of one A4 page (portrait 794×1123, landscape 1123×794). */
+  const pageHeight = landscape ? 794 : 1123;
   const notesLabel = settings?.notesLabel?.trim() || "Notes";
   const termsLabel = settings?.termsLabel?.trim() || "Terms";
   const upiId = business?.upiId?.trim();
@@ -285,9 +287,7 @@ export function InvoiceDocument({
       ? "border-stone-300"
       : isMinimal
         ? "border-stone-200"
-        : isCompact
-          ? "border-stone-300"
-          : "border-stone-200";
+        : isCompact ? "border-stone-300" : "border-stone-200";
 
   const thCellCls = cn(
     "py-2 font-semibold",
@@ -308,15 +308,24 @@ export function InvoiceDocument({
       )}
       <div
         className={cn(
-          "border border-stone-200 bg-white text-stone-900",
+          "doc-page-min flex flex-col border border-stone-200 bg-white text-stone-900 print:bg-white",
           isCompact
             ? "rounded-xl"
             : "overflow-hidden rounded-2xl shadow-sm ring-1 ring-stone-900/5 print:overflow-visible print:rounded-none print:border-0 print:shadow-none print:ring-0",
           isClassic && "print:border-x-0"
         )}
-        style={isClassic ? { borderTop: `4px solid ${accent}` } : isBold ? { borderTop: `6px solid ${accent}` } : isMinimal ? { borderTop: "1px solid #d6d3d1" } : undefined}
+        style={{
+          minHeight: pageHeight,
+          ...(isClassic
+            ? { borderTop: `4px solid ${accent}` }
+            : isBold
+              ? { borderTop: `6px solid ${accent}` }
+              : isMinimal
+                ? { borderTop: "1px solid #d6d3d1" }
+                : {}),
+        }}
       >
-        <div className={cn(containerPadding, "flex flex-col", isCompact ? "gap-3" : isMinimal ? "gap-5" : isElegant ? "gap-6" : "gap-6")}>
+        <div className={cn(containerPadding, "flex flex-1 flex-col", isCompact ? "gap-3" : isMinimal ? "gap-5" : isElegant ? "gap-6" : "gap-6")}>
           {/* Logo row for center/right */}
           {(logoPosition === "center" || logoPosition === "right") && logoMark}
 
@@ -327,10 +336,20 @@ export function InvoiceDocument({
 
           {/* Items table */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] border-collapse text-sm">
+            <table className="w-full min-w-[680px] table-fixed border-collapse text-sm">
+              <colgroup>
+                <col style={{ width: "40%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "12%" }} />
+              </colgroup>
               <thead>
                 <tr className={cn("border-b text-left", thRowCls, thCellCls)}>
                   <th className="py-2 pr-3 font-semibold">Particulars</th>
+                  <th className="py-2 pr-3 font-semibold">Frequency</th>
                   <th className="py-2 pr-3 text-right font-semibold">Qty</th>
                   <th className="py-2 pr-3 text-right font-semibold">Rate</th>
                   <th className="py-2 pr-3 text-right font-semibold">Tax</th>
@@ -341,20 +360,23 @@ export function InvoiceDocument({
               <tbody>
                 {invoice.items.map((item) => (
                   <tr key={item.id} className="border-b border-stone-100 align-top">
-                    <td className="py-2.5 pr-3">
-                      <p className="truncate font-semibold text-stone-900" style={{ fontSize: "13px", lineHeight: "1.35" }}>
+                    <td className="break-words py-2.5 pr-3">
+                      <p className="break-words font-semibold text-stone-900" style={{ fontSize: "13px", lineHeight: "1.35" }}>
                         {item.name || "Untitled item"}
                       </p>
                       {!!item.description && (
-                        <p className="truncate text-stone-500" style={{ fontSize: "11px", lineHeight: "1.4", marginTop: "2px" }}>
+                        <p className="break-words text-stone-500" style={{ fontSize: "11px", lineHeight: "1.4", marginTop: "2px" }}>
                           {item.description}
                         </p>
                       )}
                       {!!item.comments && (
-                        <p className="truncate italic text-stone-500" style={{ fontSize: "11px", lineHeight: "1.4", marginTop: "1px" }}>
+                        <p className="break-words italic text-stone-500" style={{ fontSize: "11px", lineHeight: "1.4", marginTop: "1px" }}>
                           {item.comments.replace(/\s+/g, " ").trim()}
                         </p>
                       )}
+                    </td>
+                    <td className="break-words py-2.5 pr-3 text-stone-600" style={{ fontSize: "13px" }}>
+                      {item.frequency?.trim() || "—"}
                     </td>
                     <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}{item.unit ? ` ${item.unit}` : ""}</td>
                     <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{money(item.rate)}</td>
@@ -440,7 +462,7 @@ export function InvoiceDocument({
           )}
 
           {/* Footer */}
-          <div className={cn("pt-4 text-center text-[11px] text-stone-400", isElegant ? "border-t border-stone-200" : "border-t border-stone-100")}>
+          <div className={cn("mt-auto border-t pt-4 text-center text-[11px] text-stone-400", isElegant ? "border-stone-200" : "border-stone-100")}>
             {friendly && (
               <p className="mb-2 text-xs font-medium" style={{ color: accent }}>Thank you for your business!</p>
             )}

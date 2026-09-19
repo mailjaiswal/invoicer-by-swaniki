@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -37,6 +37,12 @@ const STATUS_FILTERS: Array<{ value: "all" | InvoiceStatus; label: string }> = [
 ];
 
 export default function InvoicesPage() {
+  useEffect(() => {
+    document.body.dataset.doctype = "invoice";
+    return () => {
+      delete document.body.dataset.doctype;
+    };
+  }, []);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | InvoiceStatus>("all");
   const [payingId, setPayingId] = useState<string | null>(null);

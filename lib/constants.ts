@@ -72,6 +72,7 @@ export const DEFAULT_SETTINGS = {
   currency: "INR",
   taxMode: "none",
   defaultTax: null,
+  defaultNotes: "",
   defaultTerms: "",
   defaultTemplate: "modern",
   defaultPaymentTermsDays: 15,

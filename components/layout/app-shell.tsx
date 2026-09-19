@@ -56,9 +56,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push(mode === "quick" ? "/invoice/new?mode=quick" : "/invoice/new");
   }
 
-  function goNewQuotation() {
+  function goNewQuotation(mode: "quick" | "standard") {
     setCreateOpen(false);
-    router.push("/invoice/new?type=quotation");
+    router.push(
+      mode === "quick"
+        ? "/invoice/new?mode=quick&type=quotation"
+        : "/invoice/new?type=quotation"
+    );
   }
 
   return (
@@ -80,10 +84,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Button
               className="w-full"
               size="lg"
-              onClick={() => goNewInvoice("standard")}
+              onClick={() => setCreateOpen(true)}
             >
               <Plus className="h-5 w-5" />
-              New Invoice
+              Create new
             </Button>
           </div>
 
@@ -146,7 +150,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setCreateOpen(true)}
-              aria-label="Create invoice"
+              aria-label="Create new"
               className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-700 text-white shadow-lg transition-transform active:scale-95"
             >
               <Plus aria-hidden="true" className="h-6 w-6" />
@@ -174,27 +178,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sheet
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Create document"
-        description="Choose what you'd like to start."
+        title="Create new"
+        description="Start an invoice or a quotation."
       >
         <div className="space-y-2.5">
-          <CreateOption
-            icon={ScrollText}
-            title="Quotation"
-            description="Send a quote before the work happens."
-            onClick={() => goNewQuotation()}
-          />
           <CreateOption
             icon={Zap}
             title="Quick Invoice"
             description="One item, one customer. Done in under 2 minutes."
+            tone="violet"
             onClick={() => goNewInvoice("quick")}
           />
           <CreateOption
             icon={LayoutGrid}
-            title="Standard Invoice"
+            title="Invoice"
             description="Full invoice with customers, items, taxes and payment."
+            tone="violet"
             onClick={() => goNewInvoice("standard")}
+          />
+          <CreateOption
+            icon={Zap}
+            title="Quick Quotation"
+            description="A fast quote for a single item or service."
+            tone="green"
+            onClick={() => goNewQuotation("quick")}
+          />
+          <CreateOption
+            icon={ScrollText}
+            title="Quotation"
+            description="Send a quote before the work happens."
+            tone="green"
+            onClick={() => goNewQuotation("standard")}
           />
         </div>
       </Sheet>
@@ -261,11 +275,13 @@ function CreateOption({
   icon: Icon,
   title,
   description,
+  tone = "violet",
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   title: string;
   description: string;
+  tone?: "violet" | "green";
   onClick: () => void;
 }) {
   return (
@@ -274,7 +290,14 @@ function CreateOption({
       onClick={onClick}
       className="flex w-full items-start gap-3 rounded-xl border border-stone-200 p-4 text-left transition-colors hover:border-brand-300 hover:bg-brand-50/60 dark:border-stone-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/30"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
+      <span
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+          tone === "green"
+            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+            : "bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
+        )}
+      >
         <Icon className="h-5 w-5" aria-hidden={true} />
       </span>
       <span>

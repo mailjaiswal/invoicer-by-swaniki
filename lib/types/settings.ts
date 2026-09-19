@@ -18,6 +18,8 @@ export interface AppSettings {
   currency: CurrencyCode;
   taxMode: TaxMode;
   defaultTax: number | null;
+  /** Pre-filled on every new document's Notes block. */
+  defaultNotes?: string;
   defaultTerms: string;
   defaultTemplate: InvoiceTemplateId | string;
   defaultPaymentTermsDays: number;

@@ -65,6 +65,17 @@
     @apply bg-stone-50 font-sans text-stone-950 antialiased dark:bg-stone-950 dark:text-stone-100;
   }
 
+  /* Page backdrop tint by document type — set by useDocTypeBackdrop.
+     Only the page background behind the cards changes; the document sheet
+     stays white / per its template. */
+  body[data-doctype="invoice"] {
+    @apply bg-violet-50 dark:bg-violet-950/30;
+  }
+
+  body[data-doctype="quotation"] {
+    @apply bg-emerald-50 dark:bg-emerald-950/30;
+  }
+
   * {
     border-color: var(--color-stone-200);
   }
@@ -101,6 +112,29 @@
   html,
   body {
     background: #fff !important;
+  }
+
+  /* Neutralise the on-screen scaled preview frame so documents print
+     full-size at their natural flow (footer no longer pinned). */
+  .page-frame {
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  .page-frame-inner {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    transform: none !important;
+  }
+
+  .doc-page-min {
+    min-height: 0 !important;
   }
 
   * {

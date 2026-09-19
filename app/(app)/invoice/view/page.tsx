@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -45,6 +45,7 @@ import { Select } from "@/components/common/select";
 import { Sheet } from "@/components/common/sheet";
 import { EmptyState } from "@/components/common/empty-state";
 import { InvoiceDocument } from "@/components/invoice/document";
+import { FullPagePreview } from "@/components/invoice/page-frame";
 import { StatusBadge } from "@/components/invoice/status-badge";
 import { triggerPrint } from "@/lib/print";
 import { generateInvoicePdf, renderInvoicePdfFile } from "@/lib/pdf";
@@ -118,6 +119,12 @@ function InvoiceView() {
   );
 
   const isQuotation = !!invoice && invoice.docType === "quotation";
+  useEffect(() => {
+    document.body.dataset.doctype = isQuotation ? "quotation" : "invoice";
+    return () => {
+      delete document.body.dataset.doctype;
+    };
+  }, [isQuotation]);
 
   const upiQrValue = useMemo(
     () =>
@@ -405,12 +412,18 @@ function InvoiceView() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-        <InvoiceDocument
-          business={business}
-          settings={settings}
-          invoice={invoice}
-          status={status}
-        />
+        <FullPagePreview
+          landscape={
+            (settings?.pageOrientation ?? "portrait") === "landscape"
+          }
+        >
+          <InvoiceDocument
+            business={business}
+            settings={settings}
+            invoice={invoice}
+            status={status}
+          />
+        </FullPagePreview>
 
         <aside className="space-y-4 lg:sticky lg:top-4 print:hidden">
           {isQuotation ? (
@@ -524,7 +537,7 @@ function InvoiceView() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Share2 className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
-                {isQuotation ? "Share" : "Share &amp; Get Paid"}
+                {isQuotation ? "Share" : "Share & Get Paid"}
               </CardTitle>
               <CardDescription>
                 {isQuotation

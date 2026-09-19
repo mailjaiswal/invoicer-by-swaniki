@@ -125,7 +125,6 @@ const MUTED = "#57534e";
 const FAINT = "#a8a29e";
 const BRAND = "#1a6553";
 const PAPER = "#fafaf9";
-const HEADER_FILL = "#f5f5f4";
 const LINE = "#e7e5e4";
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
@@ -468,10 +467,11 @@ export function buildInvoiceDocDef(
       {
         table: {
           headerRows: 1,
-          widths: ["*", 32, 74, 62, 44, 84],
+          widths: ["*", 44, 30, 66, 56, 38, 78],
           body: [
             [
               { text: "Particulars", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
+              { text: "Frequency", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
               { text: "Qty", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
               { text: "Rate", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
               { text: "Tax", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
@@ -510,6 +510,10 @@ export function buildInvoiceDocDef(
                 ],
               },
               {
+                text: item.frequency?.trim() || "—",
+                alignment: "right",
+              },
+              {
                 text: `${trimNumber(item.quantity)}${item.unit ? ` ${item.unit}` : ""}`,
                 alignment: "right",
               },
@@ -532,9 +536,7 @@ export function buildInvoiceDocDef(
             rowIndex === 0
               ? isBold
                 ? "#1c1917"
-                : isMinimal || isElegant
-                  ? null
-                  : HEADER_FILL
+                : null
               : null,
         },
         margin: margin(0, 0, 2),

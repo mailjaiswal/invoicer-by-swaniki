@@ -15,6 +15,7 @@ export interface BuilderLine {
   name: string;
   description?: string;
   comments?: string;
+  frequency?: string;
   quantity: number;
   unit: string;
   rate: number;
@@ -22,6 +23,17 @@ export interface BuilderLine {
   taxType: TaxType;
   taxRate: number;
 }
+
+/** Common billing cadences offered as frequency suggestions. */
+export const FREQUENCY_OPTIONS = [
+  "One-time",
+  "Daily",
+  "Weekly",
+  "Monthly",
+  "Quarterly",
+  "Half-yearly",
+  "Yearly",
+] as const;
 
 export interface BuilderCustomer {
   name: string;
@@ -86,6 +98,7 @@ export function blankLine(
     discount: 0,
     taxType,
     taxRate,
+    frequency: "",
   };
 }
 
@@ -145,7 +158,7 @@ export function emptyDraft(
     invoiceDate: today,
     dueDate: type === "quotation" ? "" : due,
     validityDate: type === "quotation" ? due : "",
-    notes: "",
+    notes: settings?.defaultNotes ?? "",
     terms: settings?.defaultTerms ?? "",
     saveCustomer: true,
   };
@@ -176,6 +189,7 @@ export function stateFromInvoice(
       name: item.name,
       description: item.description,
       comments: item.comments,
+      frequency: item.frequency,
       quantity: item.quantity,
       unit: item.unit,
       rate: item.rate,
@@ -245,6 +259,7 @@ export function normalizeBuilderState(
       name: str(item.name),
       description: str(item.description) || undefined,
       comments: str(item.comments) || undefined,
+      frequency: str(item.frequency) || undefined,
       quantity: num(item.quantity) || 1,
       unit: str(item.unit),
       rate: num(item.rate),

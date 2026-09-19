@@ -77,6 +77,12 @@ export function BusinessForm({ initial }: { initial?: Business }) {
     <form onSubmit={handleSave} className="space-y-4">
       <LogoUpload value={logo} onChange={setLogo} />
 
+      {/* Save button moved to the top, renamed to "Save changes" */}
+      <Button type="submit" disabled={saving} className="shrink-0">
+        <Save className="h-4 w-4" aria-hidden="true" />
+        {saving ? "Saving…" : "Save changes"}
+      </Button>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Business name" required>
           <Input
@@ -155,10 +161,6 @@ export function BusinessForm({ initial }: { initial?: Business }) {
         <p className="text-[11px] leading-relaxed text-stone-400 dark:text-stone-500">
           {PRIVACY_NOTE}
         </p>
-        <Button type="submit" disabled={saving} className="shrink-0">
-          <Save className="h-4 w-4" aria-hidden="true" />
-          {saving ? "Saving…" : "Save"}
-        </Button>
       </div>
     </form>
   );

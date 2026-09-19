@@ -1,9 +1,9 @@
-/* Invoicer by Swaniki — service worker.
+﻿/* Invoicer by Swaniki — service worker.
    Served as a static asset so it works on any host (Vercel, plain static).
    Offline strategy: precache the app shell (every route), then cache
    everything else on first use. Bump VERSION to invalidate clients. */
 
-const VERSION = "v1.0.0-m15";
+const VERSION = "v1.0.0-m16";
 const CACHE = `invoicer-swaniki-${VERSION}`;
 
 const SHELL = [

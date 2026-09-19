@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -23,6 +23,12 @@ import type { Invoice } from "@/lib/types";
 const EMPTY_QUOTATIONS: Invoice[] = [];
 
 export default function QuotationsPage() {
+  useEffect(() => {
+    document.body.dataset.doctype = "quotation";
+    return () => {
+      delete document.body.dataset.doctype;
+    };
+  }, []);
   const [query, setQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string;

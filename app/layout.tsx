@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import { AppProviders, useThemeScript } from "@/lib/providers";
@@ -62,7 +63,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${inter.variable} ${sora.variable}`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: useThemeScript }} />
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: useThemeScript }}
+        />
       </head>
       <body className="min-h-svh font-sans">
         <AppProviders>

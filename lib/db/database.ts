@@ -80,6 +80,7 @@ export function defaultSettings(): AppSettings {
     currency: DEFAULT_SETTINGS.currency,
     taxMode: DEFAULT_SETTINGS.taxMode,
     defaultTax: DEFAULT_SETTINGS.defaultTax,
+    defaultNotes: DEFAULT_SETTINGS.defaultNotes,
     defaultTerms: DEFAULT_SETTINGS.defaultTerms,
     defaultTemplate: DEFAULT_SETTINGS.defaultTemplate,
     defaultPaymentTermsDays: DEFAULT_SETTINGS.defaultPaymentTermsDays,

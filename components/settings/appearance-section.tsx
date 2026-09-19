@@ -1,6 +1,6 @@
 "use client";
 
-import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon, Banknote, Type, FileSliders, Tags } from "lucide-react";
+import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon, Banknote, Type, FileSliders, Tags, FileText } from "lucide-react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import {
   Card,
@@ -10,8 +10,10 @@ import {
   CardTitle,
 } from "@/components/common/card";
 import { Select } from "@/components/common/select";
+import { TemplatePreviewCard } from "@/components/settings/template-preview";
 import { Input } from "@/components/common/input";
 import { Label } from "@/components/common/label";
+import { Textarea } from "@/components/common/textarea";
 import { useApp, useToast } from "@/lib/providers";
 import {
   ACCENT_COLOR_SWATCHES,
@@ -121,6 +123,21 @@ export function AppearanceSection() {
       .catch(() => showToast("Couldn't save the label.", "error"));
   };
 
+  const defaultNotes = settings?.defaultNotes ?? "";
+  const defaultTerms = settings?.defaultTerms ?? "";
+
+  const saveDefaultNotes = (value: string) => {
+    updateSettings({ defaultNotes: value.trim() })
+      .then(() => showToast("Default notes saved.", "success"))
+      .catch(() => showToast("Couldn't save the default notes.", "error"));
+  };
+
+  const saveDefaultTerms = (value: string) => {
+    updateSettings({ defaultTerms: value })
+      .then(() => showToast("Default terms saved.", "success"))
+      .catch(() => showToast("Couldn't save the default terms.", "error"));
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -149,40 +166,29 @@ export function AppearanceSection() {
             Invoice template
           </CardTitle>
           <CardDescription>
-            The layout used for new invoices — previewed live in the builder.
+            The layout used for new invoices. Previews update live with your
+            name, logo, colours and font.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Select value={template} onChange={(e) => setTemplate(e.target.value)} aria-label="Invoice template">
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {INVOICE_TEMPLATES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </Select>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {INVOICE_TEMPLATES.map((t) => (
-              <button
+              <TemplatePreviewCard
                 key={t.id}
-                type="button"
-                onClick={() => setTemplate(t.id)}
-                aria-pressed={template === t.id}
-                className={cn(
-                  "rounded-xl border p-3 text-left transition-colors",
-                  template === t.id
-                    ? "border-brand-600 bg-brand-50 dark:border-brand-500 dark:bg-brand-900/30"
-                    : "border-stone-200 hover:border-stone-300 dark:border-stone-700 dark:hover:border-stone-600"
-                )}
-              >
-                <p className="text-sm font-semibold text-stone-900 dark:text-white">
-                  {t.label}
-                </p>
-                <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
-                  {t.blurb}
-                </p>
-              </button>
+                templateId={t.id}
+                label={t.label}
+                blurb={t.blurb}
+                active={template === t.id}
+                business={business}
+                settings={settings}
+                onSelect={setTemplate}
+              />
             ))}
           </div>
+          <p className="mt-3 text-xs text-stone-400 dark:text-stone-500">
+            Choose the look you want — you can still switch to another template
+            on any invoice before generating it.
+          </p>
         </CardContent>
       </Card>
 
@@ -401,6 +407,49 @@ export function AppearanceSection() {
             />
             <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
               e.g. Terms, Policy, Deadline, Conditions
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+            Section content
+          </CardTitle>
+          <CardDescription>
+            Saved default text that pre-fills the notes and terms blocks on
+            every new invoice and quotation.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="default-notes">Default notes</Label>
+            <Textarea
+              id="default-notes"
+              rows={3}
+              placeholder="e.g. Thanks for your business!"
+              value={defaultNotes}
+              onChange={(e) => saveDefaultNotes(e.target.value)}
+            />
+            <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
+              Shown on every new document; you can still edit it before
+              generating.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="default-terms">Default terms</Label>
+            <Textarea
+              id="default-terms"
+              rows={3}
+              placeholder="e.g. Payment due within 15 days."
+              value={defaultTerms}
+              onChange={(e) => saveDefaultTerms(e.target.value)}
+            />
+            <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
+              Shown on every new document; you can still edit or remove it per
+              document.
             </p>
           </div>
         </CardContent>

@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
 
-function probeConnection() {
-  if (typeof navigator === "undefined") return false;
-  return navigator.onLine;
-}
-
 export function useIsOffline(): boolean {
-  const [offline, setOffline] = useState(!probeConnection());
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

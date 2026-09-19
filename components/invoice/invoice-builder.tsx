@@ -42,6 +42,7 @@ import { Label } from "@/components/common/label";
 import { Textarea } from "@/components/common/textarea";
 import { SegmentedControl } from "@/components/common/segmented";
 import { InvoiceDocument } from "./document";
+import { FullPagePreview } from "./page-frame";
 import { CustomerSection } from "./customer-section";
 import { ItemsEditor } from "./items-editor";
 import { BuilderTotals } from "./builder-totals";
@@ -74,6 +75,12 @@ export function InvoiceBuilder({
   const currency = useAppCurrency();
   const { showToast } = useToast();
   const isQuotation = docType === "quotation";
+  useEffect(() => {
+    document.body.dataset.doctype = isQuotation ? "quotation" : "invoice";
+    return () => {
+      delete document.body.dataset.doctype;
+    };
+  }, [isQuotation]);
 
   const customers = useLiveQuery(() => listCustomers(), []) ?? [];
   const productsLive = useLiveQuery(() => listProducts(), []);
@@ -334,6 +341,7 @@ export function InvoiceBuilder({
       name: line.name.trim(),
       description: line.description?.trim() || undefined,
       comments: line.comments?.trim() || undefined,
+      frequency: line.frequency?.trim() || undefined,
       quantity: line.quantity,
       unit: line.unit,
       rate: line.rate,
@@ -479,7 +487,14 @@ export function InvoiceBuilder({
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center gap-3">
+      <header
+        className={cn(
+          "flex items-center gap-3 border-b-2 pb-3",
+          isQuotation
+            ? "border-emerald-200 dark:border-emerald-800"
+            : "border-violet-200 dark:border-violet-800"
+        )}
+      >
         <button
           type="button"
           onClick={() => router.push("/home")}
@@ -733,7 +748,12 @@ export function InvoiceBuilder({
           )}
         >
           <BuilderTotals calc={calc} currency={currency} />
-          <InvoiceDocument
+        <FullPagePreview
+          landscape={
+            (settings?.pageOrientation ?? "portrait") === "landscape"
+          }
+        >
+            <InvoiceDocument
             business={business}
             settings={settings}
             invoice={{
@@ -753,6 +773,7 @@ export function InvoiceBuilder({
                   description:
                     line.description?.trim() || undefined,
                   comments: line.comments?.trim() || undefined,
+                  frequency: line.frequency?.trim() || undefined,
                   quantity: line.quantity,
                   unit: line.unit,
                   rate: line.rate,
@@ -785,6 +806,7 @@ export function InvoiceBuilder({
               state.invoiceNumber.trim() || previewNumber || "Preview"
             }
           />
+          </FullPagePreview>
           <div className="hidden lg:block">
             {formError && (
               <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
