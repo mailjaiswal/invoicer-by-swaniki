@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import { Download, Upload, AlertTriangle, FlaskConical, Database, FileJson } from "lucide-react";
@@ -93,8 +93,8 @@ export function DataSection() {
       const result = await importBackup(file, mode);
       showToast(
         mode === "replace"
-          ? `Backup restored — ${result.records} records.`
-          : `Backup merged — ${result.records} records added.`,
+          ? `Backup restored â€” ${result.records} records.`
+          : `Backup merged â€” ${result.records} records added.`,
         "success"
       );
       setPendingImport(null);
@@ -159,7 +159,7 @@ export function DataSection() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button onClick={exportBackup} disabled={exporting || reading} className="flex-1">
               <Download className="h-4 w-4" aria-hidden="true" />
-              {exporting ? "Exporting…" : "Export Backup"}
+              {exporting ? "Exportingâ€¦" : "Export Backup"}
             </Button>
             <Button
               variant="secondary"
@@ -168,7 +168,7 @@ export function DataSection() {
               className="flex-1"
             >
               <Upload className="h-4 w-4" aria-hidden="true" />
-              {reading ? "Reading…" : "Import Backup"}
+              {reading ? "Readingâ€¦" : "Import Backup"}
             </Button>
             <input
               ref={fileInputRef}
@@ -192,14 +192,14 @@ export function DataSection() {
           <CardHeader>
             <CardTitle>Developer tools</CardTitle>
             <CardDescription>
-              Visible in development builds only — never in production. Replaces
+              Visible in development builds only â€” never in production. Replaces
               customers, products, invoices and payments.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={loadDemoData} disabled={demoloading}>
               <FlaskConical className="h-4 w-4" aria-hidden="true" />
-              {demoloading ? "Loading…" : "Load demo data"}
+              {demoloading ? "Loadingâ€¦" : "Load demo data"}
             </Button>
           </CardContent>
         </Card>
@@ -222,7 +222,7 @@ export function DataSection() {
           </Button>
           <p className="mt-2 flex items-center gap-1.5 text-xs text-stone-400 dark:text-stone-500">
             <Database className="h-3.5 w-3.5" aria-hidden="true" />
-            Consider exporting a backup first — storage is local only.
+            Consider exporting a backup first â€” storage is local only.
           </p>
         </CardContent>
       </Card>
@@ -291,7 +291,7 @@ export function DataSection() {
         <p>
           This permanently deletes every invoice, customer, product, payment
           and setting on this device. Invoicer stores data only on this device
-          — there is no cloud copy. Export a backup first if you might need any
+          â€” there is no cloud copy. Export a backup first if you might need any
           of this again.
         </p>
       </ConfirmDialog>
@@ -355,7 +355,6 @@ async function seedDemoData(): Promise<void> {
       name: "Website design",
       description: "Design and build a marketing website",
       rate: 48000,
-      unit: "project",
       taxRate: 18,
       createdAt: now(),
       updatedAt: now(),
@@ -365,7 +364,6 @@ async function seedDemoData(): Promise<void> {
       name: "Monthly maintenance",
       description: "Ongoing care for your website",
       rate: 5000,
-      unit: "month",
       taxRate: null,
       createdAt: now(),
       updatedAt: now(),
@@ -375,7 +373,6 @@ async function seedDemoData(): Promise<void> {
       name: "Brand identity",
       description: "Logo, colours and brand guidelines",
       rate: 20000,
-      unit: "project",
       taxRate: 18,
       createdAt: now(),
       updatedAt: now(),
@@ -385,7 +382,6 @@ async function seedDemoData(): Promise<void> {
       name: "Consulting",
       description: "Advisory time on demand",
       rate: 2000,
-      unit: "hour",
       taxRate: null,
       createdAt: now(),
       updatedAt: now(),
@@ -395,7 +391,6 @@ async function seedDemoData(): Promise<void> {
       name: "Product photography",
       description: "Studio shoot for your products",
       rate: 8000,
-      unit: "shoot",
       taxRate: 18,
       createdAt: now(),
       updatedAt: now(),
@@ -410,8 +405,8 @@ async function seedDemoData(): Promise<void> {
       number: "INV-0001",
       customer: aarav,
       items: [
-        item("Website design", "project", 1, 48000, "gst_cgst_sgst", 18),
-        item("Brand identity", "project", 1, 20000, "gst_cgst_sgst", 18),
+        item("Website design", 1, 48000, "gst_cgst_sgst", 18),
+        item("Brand identity", 1, 20000, "gst_cgst_sgst", 18),
       ],
       invoiceDate: "2026-07-20",
       dueDate: "2026-08-04",
@@ -421,7 +416,7 @@ async function seedDemoData(): Promise<void> {
     demoInvoice({
       number: "INV-0002",
       customer: bharat,
-      items: [item("Monthly maintenance", "month", 1, 5000, "none", 0)],
+      items: [item("Monthly maintenance", 1, 5000, "none", 0)],
       invoiceDate: "2026-08-25",
       dueDate: "2026-09-09",
       createdMs: new Date("2026-08-25T11:00:00").getTime(),
@@ -430,8 +425,8 @@ async function seedDemoData(): Promise<void> {
       number: "INV-0003",
       customer: cascade,
       items: [
-        item("Consulting", "hour", 4, 2000, "none", 0),
-        item("Product photography", "shoot", 1, 8000, "gst_cgst_sgst", 18),
+        item("Consulting", 4, 2000, "none", 0),
+        item("Product photography", 1, 8000, "gst_cgst_sgst", 18),
       ],
       invoiceDate: "2026-09-12",
       dueDate: "2026-09-27",
@@ -440,7 +435,7 @@ async function seedDemoData(): Promise<void> {
     demoInvoice({
       number: "INV-0004",
       customer: drishti,
-      items: [item("Product photography", "shoot", 1, 8000, "gst_cgst_sgst", 18)],
+      items: [item("Product photography", 1, 8000, "gst_cgst_sgst", 18)],
       invoiceDate: "2026-09-02",
       dueDate: "2026-09-17",
       createdMs: new Date("2026-09-02T10:30:00").getTime(),
@@ -473,7 +468,6 @@ async function seedDemoData(): Promise<void> {
 
 function item(
   name: string,
-  unit: string,
   quantity: number,
   rate: number,
   taxType: TaxType,
@@ -482,7 +476,6 @@ function item(
   return {
     name,
     description: undefined,
-    unit,
     quantity,
     rate,
     discount: 0,

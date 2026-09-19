@@ -514,7 +514,7 @@ export function buildInvoiceDocDef(
                 alignment: "right",
               },
               {
-                text: `${trimNumber(item.quantity)}${item.unit ? ` ${item.unit}` : ""}`,
+                text: trimNumber(item.quantity),
                 alignment: "right",
               },
               { text: money(item.rate), alignment: "right" },

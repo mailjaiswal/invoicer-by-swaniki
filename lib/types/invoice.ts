@@ -16,7 +16,6 @@ export interface InvoiceItem {
   /** How often this line repeats, e.g. "One-time", "Monthly". */
   frequency?: string;
   quantity: number;
-  unit: string;
   rate: number;
   taxType: TaxType;
   taxRate: number;

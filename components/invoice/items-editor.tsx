@@ -33,7 +33,6 @@ const TAX_OPTIONS: Array<{ value: TaxType; label: string }> = [
 const PRODUCT_SHARED_KEYS = [
   "name",
   "description",
-  "unit",
   "rate",
   "taxType",
   "taxRate",
@@ -115,7 +114,6 @@ export function ItemsEditor({
         id: uid("item"),
         name: "",
         quantity: 1,
-        unit: "",
         rate: 0,
         discount: 0,
         taxType: "none",
@@ -218,7 +216,6 @@ export function ItemsEditor({
                       {product.name}
                     </span>
                     <span className="block truncate text-xs text-stone-500">
-                      {product.unit || "unit"} ·{" "}
                       {formatMoney(product.rate, currency)}
                       {product.taxRate ? ` · ${product.taxRate}%` : ""}
                     </span>
@@ -292,7 +289,7 @@ function ItemCard({
     if (!needle) return [];
     return products
       .filter((product) =>
-        [product.name, product.description ?? "", product.unit ?? ""]
+        [product.name, product.description ?? ""]
           .join(" ")
           .toLowerCase()
           .includes(needle)
@@ -328,7 +325,6 @@ function ItemCard({
                       linked: true,
                       name: product.name,
                       description: product.description,
-                      unit: product.unit,
                       rate: product.rate,
                       taxType: product.taxRate ? "percentage" : "none",
                       taxRate: product.taxRate ?? 0,
@@ -353,7 +349,6 @@ function ItemCard({
                   </span>
                   <span className="shrink-0 text-xs text-stone-500">
                     {formatMoney(product.rate, currency)}
-                    {product.unit ? ` / ${product.unit}` : ""}
                   </span>
                 </button>
               ))}

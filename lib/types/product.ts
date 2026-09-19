@@ -3,7 +3,6 @@ export interface Product {
   name: string;
   description?: string;
   rate: number;
-  unit: string;
   taxRate?: number | null;
   createdAt: number;
   updatedAt: number;

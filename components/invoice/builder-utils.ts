@@ -10,14 +10,13 @@ import type {
 export interface BuilderLine {
   id: string;
   productId?: string;
-  /** When true the line keeps pulling name/description/unit/rate/tax from the linked product. */
+  /** When true the line keeps pulling name/description/rate/tax from the linked product. */
   linked?: boolean;
   name: string;
   description?: string;
   comments?: string;
   frequency?: string;
   quantity: number;
-  unit: string;
   rate: number;
   discount: number;
   taxType: TaxType;
@@ -94,7 +93,6 @@ export function blankLine(
     id: uid("item"),
     name: "",
     quantity,
-    unit: "",
     rate: 0,
     discount: 0,
     taxType,
@@ -112,7 +110,6 @@ export function lineFromProduct(product: Product): BuilderLine {
     name: product.name,
     description: product.description,
     quantity: 1,
-    unit: product.unit,
     rate: product.rate,
     discount: 0,
     taxType: product.taxRate ? "percentage" : "none",
@@ -136,7 +133,6 @@ export function syncLineFromProduct(
     ...line,
     name: product.name,
     description: product.description,
-    unit: product.unit,
     rate: product.rate,
     taxType: product.taxRate ? ("percentage" as const) : ("none" as const),
     taxRate: product.taxRate ?? 0,
@@ -192,7 +188,6 @@ export function stateFromInvoice(
       comments: item.comments,
       frequency: item.frequency,
       quantity: item.quantity,
-      unit: item.unit,
       rate: item.rate,
       discount: item.discount,
       taxType: item.taxType,
@@ -262,7 +257,6 @@ export function normalizeBuilderState(
       comments: str(item.comments) || undefined,
       frequency: str(item.frequency) || undefined,
       quantity: num(item.quantity) || 1,
-      unit: str(item.unit),
       rate: num(item.rate),
       discount: num(item.discount),
       taxType: isTaxType(item.taxType) ? item.taxType : "none",

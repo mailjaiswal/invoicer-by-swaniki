@@ -378,7 +378,7 @@ export function InvoiceDocument({
                     <td className="break-words py-2.5 pr-3 text-stone-600" style={{ fontSize: "13px" }}>
                       {item.frequency?.trim() || "—"}
                     </td>
-                    <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}{item.unit ? ` ${item.unit}` : ""}</td>
+                    <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}</td>
                     <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{money(item.rate)}</td>
                     <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{taxLabel(item.taxType, item.taxRate)}</td>
                     <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{item.discount ? `${trimNumber(item.discount)}%` : "—"}</td>

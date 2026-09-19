@@ -19,12 +19,11 @@ interface ProductForm {
   name: string;
   description: string;
   rate: string;
-  unit: string;
   taxRate: string;
 }
 
 function blankForm(): ProductForm {
-  return { name: "", description: "", rate: "", unit: "", taxRate: "" };
+  return { name: "", description: "", rate: "", taxRate: "" };
 }
 
 function formFromProduct(product: Product): ProductForm {
@@ -32,7 +31,6 @@ function formFromProduct(product: Product): ProductForm {
     name: product.name ?? "",
     description: product.description ?? "",
     rate: String(product.rate || ""),
-    unit: product.unit ?? "",
     taxRate: String(product.taxRate || ""),
   };
 }
@@ -76,7 +74,7 @@ export default function ProductsPage() {
     const needle = query.trim().toLowerCase();
     if (!needle) return products;
     return products.filter((product) =>
-      [product.name, product.description ?? "", product.unit ?? ""]
+      [product.name, product.description ?? ""]
         .join(" ")
         .toLowerCase()
         .includes(needle)
@@ -112,7 +110,6 @@ export default function ProductsPage() {
         name: form.name.trim(),
         description: form.description.trim() || undefined,
         rate: rate ?? 0,
-        unit: form.unit.trim(),
         taxRate: taxRate ?? null,
       };
       await upsertProduct(draft);
@@ -237,29 +234,18 @@ export default function ProductsPage() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="product-rate">Rate</Label>
-              <Input
-                id="product-rate"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="any"
-                placeholder="0"
-                value={form.rate}
-                onChange={(e) => setForm({ ...form, rate: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="product-unit">Unit</Label>
-              <Input
-                id="product-unit"
-                placeholder="hour"
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })}
-              />
-            </div>
+          <div>
+            <Label htmlFor="product-rate">Rate</Label>
+            <Input
+              id="product-rate"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              placeholder="0"
+              value={form.rate}
+              onChange={(e) => setForm({ ...form, rate: e.target.value })}
+            />
           </div>
           <div>
             <Label htmlFor="product-tax">
@@ -371,9 +357,6 @@ function ProductCard({
         <div className="mt-3 flex items-end justify-between gap-3">
           <p className="font-display text-xl font-bold tracking-tight text-stone-950 dark:text-white">
             {formatMoney(product.rate, currency)}
-            {product.unit && (
-              <span className="ml-1 text-xs font-medium text-stone-400">/ {product.unit}</span>
-            )}
           </p>
           {product.taxRate ? (
             <span className="shrink-0 rounded-md bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-stone-600 dark:bg-stone-800 dark:text-stone-300">
