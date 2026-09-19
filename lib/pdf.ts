@@ -333,6 +333,11 @@ export function buildInvoiceDocDef(
   const notesLabel = (settings?.notesLabel?.trim() || "Notes").toUpperCase();
   const termsLabel = (settings?.termsLabel?.trim() || "Terms").toUpperCase();
 
+  const lineItems = invoice.items ?? [];
+  const showFrequencyCol = lineItems.some((i) => !!i.frequency?.trim());
+  const showTaxCol = lineItems.some((i) => i.taxType !== "none");
+  const showDiscountCol = lineItems.some((i) => (i.discount ?? 0) > 0);
+
   return {
     pageSize: "A4",
     pageOrientation: orientation === "landscape" ? "landscape" : "portrait",
@@ -467,15 +472,29 @@ export function buildInvoiceDocDef(
       {
         table: {
           headerRows: 1,
-          widths: ["*", 36, 24, 56, 46, 30, 68],
+          widths: [
+            "*",
+            ...(showFrequencyCol ? [48] : []),
+            24,
+            56,
+            ...(showTaxCol ? [44] : []),
+            ...(showDiscountCol ? [48] : []),
+            72,
+          ],
           body: [
             [
               { text: "Particulars", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
-              { text: "Frequency", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
+              ...(showFrequencyCol
+                ? [{ text: "Frequency", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 }]
+                : []),
               { text: "Qty", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
               { text: "Rate", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
-              { text: "Tax", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
-              { text: "Disc", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
+              ...(showTaxCol
+                ? [{ text: "Tax", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 }]
+                : []),
+              ...(showDiscountCol
+                ? [{ text: "Discount", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 }]
+                : []),
               { text: "Amount", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
             ],
             ...invoice.items.map((item) => [
@@ -509,17 +528,24 @@ export function buildInvoiceDocDef(
                     : []),
                 ],
               },
-              {
-                text: item.frequency?.trim() || "—",
-                alignment: "right",
-              },
+              ...(showFrequencyCol
+                ? [{
+                    text: item.frequency?.trim() || "—",
+                    alignment: "right",
+                    fontSize: 7.5,
+                  }]
+                : []),
               {
                 text: trimNumber(item.quantity),
                 alignment: "right",
               },
               { text: money(item.rate), alignment: "right" },
-              { text: taxLabel(item.taxType, item.taxRate), alignment: "right" },
-              { text: item.discount ? `${trimNumber(item.discount)}%` : "—", alignment: "right" },
+              ...(showTaxCol
+                ? [{ text: taxLabel(item.taxType, item.taxRate), alignment: "right" }]
+                : []),
+              ...(showDiscountCol
+                ? [{ text: item.discount ? `${trimNumber(item.discount)}%` : "—", alignment: "right" }]
+                : []),
               { text: money(item.lineTotal), alignment: "right" },
             ]),
           ],

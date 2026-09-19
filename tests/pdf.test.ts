@@ -452,6 +452,52 @@ describe("pdfmake document definitions", () => {
     expect(text.some((t) => t === "Description")).toBe(false);
   });
 
+  it("hides unused item columns (frequency and discount)", () => {
+    const doc = buildInvoiceDocDef(
+      sampleInvoice({
+        discount: 0,
+        items: sampleInvoice().items.map((item) => ({ ...item, discount: 0 })),
+      }),
+      undefined,
+      sampleSettings()
+    );
+    const text = collectText(doc);
+    expect(text.some((t) => t === "Frequency")).toBe(false);
+    expect(text.some((t) => t === "Disc")).toBe(false);
+    expect(text.some((t) => t === "Discount")).toBe(false);
+  });
+
+  it("shows the frequency column when any item has one", () => {
+    const doc = buildInvoiceDocDef(
+      sampleInvoice({
+        items: sampleInvoice().items.map((item, index) =>
+          index === 0 ? { ...item, frequency: "Monthly" } : item
+        ),
+      }),
+      undefined,
+      sampleSettings()
+    );
+    const text = collectText(doc);
+    expect(text.some((t) => t === "Frequency")).toBe(true);
+    expect(text.some((t) => t === "Monthly")).toBe(true);
+  });
+
+  it("shows the discount column when any item has a discount", () => {
+    const doc = buildInvoiceDocDef(
+      sampleInvoice({
+        discount: 0,
+        items: sampleInvoice().items.map((item, index) =>
+          index === 0 ? { ...item, discount: 5 } : item
+        ),
+      }),
+      undefined,
+      sampleSettings()
+    );
+    const text = collectText(doc);
+    expect(text.some((t) => t === "Discount")).toBe(true);
+    expect(text.some((t) => t === "Disc")).toBe(false);
+  });
+
   it("renders a quotation title, valid-until date and no status", () => {
     const doc = buildInvoiceDocDef(
       sampleInvoice({

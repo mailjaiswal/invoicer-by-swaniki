@@ -56,6 +56,24 @@ export function InvoiceDocument({
   const isQuotation = invoice.docType === "quotation";
   const docTitle = isQuotation ? "Quotation" : "Invoice";
 
+  const lineItems = invoice.items ?? [];
+  const showFrequency = lineItems.some((i) => !!i.frequency?.trim());
+  const showTaxColumn = lineItems.some((i) => i.taxType !== "none");
+  const showDiscountColumn = lineItems.some((i) => (i.discount ?? 0) > 0);
+  const W_FREQUENCY = 12;
+  const W_QTY = 6;
+  const W_RATE = 10;
+  const W_TAX = 8;
+  const W_DISCOUNT = 6;
+  const W_AMOUNT = 14;
+  const usedOtherWidth =
+    (showFrequency ? W_FREQUENCY : 0) +
+    W_QTY +
+    W_RATE +
+    (showTaxColumn ? W_TAX : 0) +
+    (showDiscountColumn ? W_DISCOUNT : 0) +
+    W_AMOUNT;
+
   const personality: InvoicePersonality =
     INVOICE_PERSONALITIES.some((p) => p.id === settings?.personality)
       ? settings!.personality as InvoicePersonality
@@ -338,27 +356,41 @@ export function InvoiceDocument({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] table-fixed border-collapse text-sm">
               <colgroup>
-                <col style={{ width: "48%" }} />
-                <col style={{ width: "8%" }} />
-                <col style={{ width: "6%" }} />
-                <col style={{ width: "10%" }} />
-                <col style={{ width: "8%" }} />
-                <col style={{ width: "6%" }} />
-                <col style={{ width: "14%" }} />
+                <col
+                  style={{ width: `${Math.max(40, 100 - usedOtherWidth)}%` }}
+                />
+                {showFrequency && (
+                  <col style={{ width: `${W_FREQUENCY}%` }} />
+                )}
+                <col style={{ width: `${W_QTY}%` }} />
+                <col style={{ width: `${W_RATE}%` }} />
+                {showTaxColumn && <col style={{ width: `${W_TAX}%` }} />}
+                {showDiscountColumn && (
+                  <col style={{ width: `${W_DISCOUNT}%` }} />
+                )}
+                <col style={{ width: `${W_AMOUNT}%` }} />
               </colgroup>
               <thead>
                 <tr className={cn("border-b text-left", thRowCls, thCellCls)}>
                   <th className="py-2 pr-3 font-semibold">Particulars</th>
-                  <th className="py-2 pr-3 font-semibold">Frequency</th>
+                  {showFrequency && (
+                    <th className="py-2 pr-3 font-semibold">Frequency</th>
+                  )}
                   <th className="py-2 pr-3 text-right font-semibold">Qty</th>
                   <th className="py-2 pr-3 text-right font-semibold">Rate</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Tax</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Disc</th>
+                  {showTaxColumn && (
+                    <th className="py-2 pr-3 text-right font-semibold">Tax</th>
+                  )}
+                  {showDiscountColumn && (
+                    <th className="py-2 pr-3 text-right font-semibold">
+                      Discount
+                    </th>
+                  )}
                   <th className="py-2 text-right font-semibold">Amount</th>
                 </tr>
               </thead>
               <tbody>
-                {invoice.items.map((item) => (
+                {lineItems.map((item) => (
                   <tr key={item.id} className="border-b border-stone-100 align-top">
                     <td className="break-words py-2.5 pr-3">
                       <p className="break-words font-semibold text-stone-900" style={{ fontSize: "13px", lineHeight: "1.35" }}>
@@ -375,13 +407,22 @@ export function InvoiceDocument({
                         </p>
                       )}
                     </td>
-                    <td className="break-words py-2.5 pr-3 text-stone-600" style={{ fontSize: "13px" }}>
-                      {item.frequency?.trim() || "—"}
-                    </td>
+                    {showFrequency && (
+                      <td
+                        className="break-words py-2.5 pr-3 text-stone-600"
+                        style={{ fontSize: "11px" }}
+                      >
+                        {item.frequency?.trim() || "—"}
+                      </td>
+                    )}
                     <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}</td>
                     <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{money(item.rate)}</td>
-                    <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{taxLabel(item.taxType, item.taxRate)}</td>
-                    <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{item.discount ? `${trimNumber(item.discount)}%` : "—"}</td>
+                    {showTaxColumn && (
+                      <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{taxLabel(item.taxType, item.taxRate)}</td>
+                    )}
+                    {showDiscountColumn && (
+                      <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{item.discount ? `${trimNumber(item.discount)}%` : "—"}</td>
+                    )}
                     <td className="py-2.5 text-right font-medium text-stone-900" style={{ fontSize: "13px" }}>{money(item.lineTotal)}</td>
                   </tr>
                 ))}
