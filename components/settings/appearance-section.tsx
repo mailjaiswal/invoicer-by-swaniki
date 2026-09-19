@@ -107,27 +107,35 @@ export function AppearanceSection() {
   };
 
   const setNotesLabel = (value: string) => {
-    const label = value.trim();
-    updateSettings({
-      notesLabel: label || "Notes",
-    })
-      .then(() => showToast("Section label saved.", "success"))
-      .catch(() => showToast("Couldn't save the label.", "error"));
+    if (notesLabelTimer.current) clearTimeout(notesLabelTimer.current);
+    notesLabelTimer.current = setTimeout(() => {
+      const label = value.trim();
+      updateSettings({
+        notesLabel: label || "Notes",
+      })
+        .then(() => showToast("Section label saved.", "success"))
+        .catch(() => showToast("Couldn't save the label.", "error"));
+    }, 600);
   };
 
   const setTermsLabel = (value: string) => {
-    const label = value.trim();
-    updateSettings({
-      termsLabel: label || "Terms",
-    })
-      .then(() => showToast("Section label saved.", "success"))
-      .catch(() => showToast("Couldn't save the label.", "error"));
+    if (termsLabelTimer.current) clearTimeout(termsLabelTimer.current);
+    termsLabelTimer.current = setTimeout(() => {
+      const label = value.trim();
+      updateSettings({
+        termsLabel: label || "Terms",
+      })
+        .then(() => showToast("Section label saved.", "success"))
+        .catch(() => showToast("Couldn't save the label.", "error"));
+    }, 600);
   };
 
   const defaultNotes = settings?.defaultNotes ?? "";
   const defaultTerms = settings?.defaultTerms ?? "";
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const termsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notesLabelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const termsLabelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saveDefaultNotes = (value: string) => {
     if (notesTimer.current) clearTimeout(notesTimer.current);
