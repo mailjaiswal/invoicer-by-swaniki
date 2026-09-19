@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon, Banknote, Type, FileSliders, Tags, FileText } from "lucide-react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import {
@@ -31,6 +31,59 @@ import { cn } from "@/lib/utils";
 import type { InvoicePersonality, InvoiceTemplateId } from "@/lib/types";
 import type { LogoPosition } from "@/lib/constants";
 import type { PageOrientation } from "@/lib/types";
+
+/**
+ * A locally-edited text field (debounced save). While the field is dirty the
+ * stored (live-query) value is never written back, so typing never gets
+ * clobbered by a pending IndexedDB save completing.
+ */
+function useLocalText(
+  serverValue: string,
+  save: (value: string) => void,
+  delay = 600
+) {
+  const [value, setValue] = useState(serverValue);
+  const [dirty, setDirty] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<string | null>(null);
+  const [adoptedServerValue, setAdoptedServerValue] = useState(serverValue);
+
+  if (adoptedServerValue !== serverValue) {
+    setAdoptedServerValue(serverValue);
+    if (!dirty) setValue(serverValue);
+  }
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    []
+  );
+
+  const commit = (next: string) => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    pendingRef.current = next;
+    Promise.resolve(save(next)).finally(() => {
+      if (pendingRef.current === next) setDirty(false);
+    });
+  };
+
+  const onChange = (next: string) => {
+    setDirty(true);
+    setValue(next);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => commit(next), delay);
+  };
+
+  const flush = () => {
+    if (timer.current) commit(value);
+  };
+
+  return { value, onChange, flush };
+}
 
 export function AppearanceSection() {
   const { business, settings, updateBusiness, updateSettings } = useApp();
@@ -95,8 +148,6 @@ export function AppearanceSection() {
   };
 
   const orientation = settings?.pageOrientation ?? "portrait";
-  const notesLabel = settings?.notesLabel || "Notes";
-  const termsLabel = settings?.termsLabel || "Terms";
 
   const setOrientation = (value: string) => {
     const id = value as PageOrientation;
@@ -106,54 +157,37 @@ export function AppearanceSection() {
       .catch(() => showToast("Couldn't save the orientation.", "error"));
   };
 
-  const setNotesLabel = (value: string) => {
-    if (notesLabelTimer.current) clearTimeout(notesLabelTimer.current);
-    notesLabelTimer.current = setTimeout(() => {
-      const label = value.trim();
-      updateSettings({
-        notesLabel: label || "Notes",
-      })
-        .then(() => showToast("Section label saved.", "success"))
-        .catch(() => showToast("Couldn't save the label.", "error"));
-    }, 600);
-  };
+  const notesLabel = useLocalText(settings?.notesLabel || "Notes", (label) =>
+    updateSettings({
+      notesLabel: label.trim() || "Notes",
+    })
+      .then(() => showToast("Section label saved.", "success"))
+      .catch(() => showToast("Couldn't save the label.", "error"))
+  );
 
-  const setTermsLabel = (value: string) => {
-    if (termsLabelTimer.current) clearTimeout(termsLabelTimer.current);
-    termsLabelTimer.current = setTimeout(() => {
-      const label = value.trim();
-      updateSettings({
-        termsLabel: label || "Terms",
-      })
-        .then(() => showToast("Section label saved.", "success"))
-        .catch(() => showToast("Couldn't save the label.", "error"));
-    }, 600);
-  };
+  const termsLabel = useLocalText(settings?.termsLabel || "Terms", (label) =>
+    updateSettings({
+      termsLabel: label.trim() || "Terms",
+    })
+      .then(() => showToast("Section label saved.", "success"))
+      .catch(() => showToast("Couldn't save the label.", "error"))
+  );
 
-  const defaultNotes = settings?.defaultNotes ?? "";
-  const defaultTerms = settings?.defaultTerms ?? "";
-  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const termsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const notesLabelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const termsLabelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const saveDefaultNotes = (value: string) => {
-    if (notesTimer.current) clearTimeout(notesTimer.current);
-    notesTimer.current = setTimeout(() => {
+  const defaultNotes = useLocalText(
+    settings?.defaultNotes ?? "",
+    (value) =>
       updateSettings({ defaultNotes: value.trim() })
         .then(() => showToast("Default notes saved.", "success"))
-        .catch(() => showToast("Couldn't save the default notes.", "error"));
-    }, 600);
-  };
+        .catch(() => showToast("Couldn't save the default notes.", "error"))
+  );
 
-  const saveDefaultTerms = (value: string) => {
-    if (termsTimer.current) clearTimeout(termsTimer.current);
-    termsTimer.current = setTimeout(() => {
+  const defaultTerms = useLocalText(
+    settings?.defaultTerms ?? "",
+    (value) =>
       updateSettings({ defaultTerms: value })
         .then(() => showToast("Default terms saved.", "success"))
-        .catch(() => showToast("Couldn't save the default terms.", "error"));
-    }, 600);
-  };
+        .catch(() => showToast("Couldn't save the default terms.", "error"))
+  );
 
   return (
     <div className="space-y-4">
@@ -407,8 +441,9 @@ export function AppearanceSection() {
             <Input
               id="notes-label"
               placeholder="Notes"
-              value={notesLabel}
-              onChange={(e) => setNotesLabel(e.target.value)}
+              value={notesLabel.value}
+              onChange={(e) => notesLabel.onChange(e.target.value)}
+              onBlur={notesLabel.flush}
             />
             <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
               e.g. Notes, Message, Instructions, Payment info
@@ -419,8 +454,9 @@ export function AppearanceSection() {
             <Input
               id="terms-label"
               placeholder="Terms"
-              value={termsLabel}
-              onChange={(e) => setTermsLabel(e.target.value)}
+              value={termsLabel.value}
+              onChange={(e) => termsLabel.onChange(e.target.value)}
+              onBlur={termsLabel.flush}
             />
             <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
               e.g. Terms, Policy, Deadline, Conditions
@@ -447,8 +483,9 @@ export function AppearanceSection() {
               id="default-notes"
               rows={3}
               placeholder="e.g. Thanks for your business!"
-              value={defaultNotes}
-              onChange={(e) => saveDefaultNotes(e.target.value)}
+              value={defaultNotes.value}
+              onChange={(e) => defaultNotes.onChange(e.target.value)}
+              onBlur={defaultNotes.flush}
             />
             <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
               Shown on every new document; you can still edit it before
@@ -461,8 +498,9 @@ export function AppearanceSection() {
               id="default-terms"
               rows={3}
               placeholder="e.g. Payment due within 15 days."
-              value={defaultTerms}
-              onChange={(e) => saveDefaultTerms(e.target.value)}
+              value={defaultTerms.value}
+              onChange={(e) => defaultTerms.onChange(e.target.value)}
+              onBlur={defaultTerms.flush}
             />
             <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
               Shown on every new document; you can still edit or remove it per
