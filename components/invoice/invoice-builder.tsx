@@ -546,7 +546,7 @@ export function InvoiceBuilder({
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-8">
         {/* Left: form */}
         <section
           className={cn("space-y-6", tab === "preview" && "hidden lg:block")}
