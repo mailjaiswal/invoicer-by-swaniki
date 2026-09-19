@@ -50,8 +50,8 @@ export function FullPagePreview({
 
     const measure = () => {
       const frameW = frame.clientWidth;
+      if (!frameW) return;
       const frameH = frame.clientHeight;
-      if (!frameW || !frameH) return;
       const naturalHeight = Math.max(inner.scrollHeight, pageHeight);
       /**
        * Fill the frame's width exactly so no grey gutters show on either
