@@ -140,7 +140,7 @@ export function TemplatePreviewCard({
       <div
         ref={frameRef}
         className="relative w-full overflow-hidden bg-stone-100"
-        style={{ aspectRatio: "210 / 297" }}
+        style={{ height: 248 }}
       >
         <div
           aria-hidden="true"
