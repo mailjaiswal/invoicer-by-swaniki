@@ -1,0 +1,41 @@
+
+> invoicer-by-swaniki@0.1.0 dev
+> next dev -p 51050
+
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:51050
+- Network:       http://192.168.1.6:51050
+- Environments: .env.local
+✓ Ready in 1333ms
+✓ Running next.config.ts took 95ms
+
+ GET / 200 in 784ms (next.js: 364ms, application-code: 420ms)
+ GET / 200 in 450ms (next.js: 150ms, application-code: 300ms)
+ GET /manifest.webmanifest 200 in 523ms (next.js: 455ms, application-code: 67ms)
+ GET /home 200 in 208ms (next.js: 115ms, application-code: 94ms)
+ GET /manifest.webmanifest 200 in 22ms (next.js: 8ms, application-code: 14ms)
+ GET /settings 200 in 370ms (next.js: 224ms, application-code: 146ms)
+ GET /manifest.webmanifest 200 in 26ms (next.js: 7ms, application-code: 19ms)
+ GET /invoices 200 in 129ms (next.js: 84ms, application-code: 45ms)
+ GET /manifest.webmanifest 200 in 31ms (next.js: 18ms, application-code: 13ms)
+ GET /invoice/new 200 in 163ms (next.js: 90ms, application-code: 73ms)
+ GET /manifest.webmanifest 200 in 21ms (next.js: 5ms, application-code: 16ms)
+ GET /manifest.webmanifest?probe=1790198263425 200 in 145ms (next.js: 126ms, application-code: 19ms)
+ GET /settings 200 in 86ms (next.js: 20ms, application-code: 65ms)
+ GET /manifest.webmanifest 200 in 16ms (next.js: 8ms, application-code: 7ms)
+ GET /invoices 200 in 68ms (next.js: 13ms, application-code: 55ms)
+ GET /manifest.webmanifest 200 in 19ms (next.js: 8ms, application-code: 11ms)
+ GET /invoice/new 200 in 65ms (next.js: 14ms, application-code: 51ms)
+ GET /manifest.webmanifest 200 in 27ms (next.js: 6ms, application-code: 21ms)
+ GET /manifest.webmanifest?probe=1790198293431 200 in 17ms (next.js: 6ms, application-code: 11ms)
+ GET /manifest.webmanifest?probe=1790198323433 200 in 406ms (next.js: 393ms, application-code: 13ms)
+ GET /manifest.webmanifest?probe=1790198353422 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /manifest.webmanifest?probe=1790198383424 200 in 16ms (next.js: 5ms, application-code: 11ms)
+ GET /manifest.webmanifest?probe=1790198413419 200 in 11ms (next.js: 5ms, application-code: 6ms)
+ GET /manifest.webmanifest?probe=1790198443416 200 in 9ms (next.js: 3ms, application-code: 5ms)
+ GET /manifest.webmanifest?probe=1790198473425 200 in 10ms (next.js: 6ms, application-code: 4ms)
+ GET /manifest.webmanifest?probe=1790198503820 200 in 18ms (next.js: 5ms, application-code: 13ms)
+ GET /manifest.webmanifest?probe=1790198533831 200 in 17ms (next.js: 7ms, application-code: 11ms)
+ GET /manifest.webmanifest?probe=1790198594829 200 in 14ms (next.js: 5ms, application-code: 9ms)
+ GET /manifest.webmanifest?probe=1790198655821 200 in 15ms (next.js: 7ms, application-code: 9ms)
+ GET /manifest.webmanifest?probe=1790198716813 200 in 19ms (next.js: 6ms, application-code: 13ms)

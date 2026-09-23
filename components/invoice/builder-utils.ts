@@ -111,6 +111,7 @@ export function lineFromProduct(product: Product): BuilderLine {
     description: product.description,
     quantity: 1,
     rate: product.rate,
+    frequency: product.frequency ?? "",
     discount: 0,
     taxType: product.taxRate ? "percentage" : "none",
     taxRate: product.taxRate ?? 0,
@@ -134,6 +135,7 @@ export function syncLineFromProduct(
     name: product.name,
     description: product.description,
     rate: product.rate,
+    frequency: product.frequency?.trim() ? product.frequency : line.frequency,
     taxType: product.taxRate ? ("percentage" as const) : ("none" as const),
     taxRate: product.taxRate ?? 0,
   };

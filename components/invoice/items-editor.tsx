@@ -326,6 +326,7 @@ function ItemCard({
                       name: product.name,
                       description: product.description,
                       rate: product.rate,
+                      frequency: product.frequency ?? "",
                       taxType: product.taxRate ? "percentage" : "none",
                       taxRate: product.taxRate ?? 0,
                     });

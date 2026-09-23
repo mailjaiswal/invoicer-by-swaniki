@@ -9,7 +9,16 @@ import { formatDate, formatMoney } from "@/lib/formatting";
 import { taxLabel } from "@/lib/calculations";
 import { buildReceiptNumber } from "@/lib/print";
 import { buildUpiUrl, isValidUpiId } from "@/lib/upi";
-import { type DocFontId } from "@/lib/constants";
+import {
+  getItemColumnDefs,
+  pdfColumnWidths,
+} from "@/lib/item-columns";
+import { INVOICE_TEMPLATES, type DocFontId } from "@/lib/constants";
+import {
+  contrastTextOn,
+  paletteForTemplate,
+  resolveAccent,
+} from "@/lib/template-palettes";
 import type QRCode from "qrcode";
 
 let qrApi: typeof QRCode | undefined;
@@ -127,6 +136,17 @@ const BRAND = "#1a6553";
 const PAPER = "#fafaf9";
 const LINE = "#e7e5e4";
 
+/**
+ * Per-template colour personas live in `@/lib/template-palettes` — the single
+ * source of truth shared with the on-screen preview (document.tsx), so the
+ * downloaded PDF cannot drift from what the user sees. The palette stores hex
+ * values WITHOUT the leading '#'; pdfmake needs the '#', so pdfHex adds it
+ * back at the boundary.
+ */
+function pdfHex(hex: string): string {
+  return `#${hex.replace(/^#/, "")}`;
+}
+
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
   draft: "Draft",
   unpaid: "Unpaid",
@@ -221,18 +241,26 @@ export function buildInvoiceDocDef(
   const number = invoice.invoiceNumber || "Preview";
   const status = invoice.status ?? "draft";
 
-  const template = settings?.defaultTemplate ?? "modern";
+  const rawTemplate = settings?.defaultTemplate ?? "modern";
+  const template = INVOICE_TEMPLATES.some((t) => t.id === rawTemplate)
+    ? rawTemplate
+    : "modern";
   const isQuotation = invoice.docType === "quotation";
   const docTitle = isQuotation ? "QUOTATION" : "INVOICE";
   const isClassic = template === "classic";
   const isCompact = template === "compact";
   const isMinimal = template === "minimal";
   const isBold = template === "bold";
+  const isBar = template === "bar";
   const isElegant = template === "elegant";
   const personality = settings?.personality ?? "professional";
   const isMinimalPersonality = personality === "minimal";
   const isFriendly = personality === "friendly";
-  const brand = settings?.accentColor?.trim() || BRAND;
+  const palette = paletteForTemplate(template);
+  const headerTint = palette.headerTint ? pdfHex(palette.headerTint) : null;
+  const brand = pdfHex(resolveAccent(settings?.accentColor, template));
+  /** Readable ink on full-strength accent bands ("bar" template). */
+  const BAND_INK = contrastTextOn(brand) === "white" ? "#ffffff" : INK;
   const logoPosition = business?.logoPosition ?? "left";
   const logo =
     business?.logo && logoPosition !== "none" ? business.logo : undefined;
@@ -334,9 +362,8 @@ export function buildInvoiceDocDef(
   const termsLabel = (settings?.termsLabel?.trim() || "Terms").toUpperCase();
 
   const lineItems = invoice.items ?? [];
-  const showFrequencyCol = lineItems.some((i) => !!i.frequency?.trim());
-  const showTaxCol = lineItems.some((i) => i.taxType !== "none");
-  const showDiscountCol = lineItems.some((i) => (i.discount ?? 0) > 0);
+  const columnDefs = getItemColumnDefs(lineItems);
+  const pdfWidths = pdfColumnWidths(columnDefs, contentWidth);
 
   return {
     pageSize: "A4",
@@ -349,6 +376,17 @@ export function buildInvoiceDocDef(
     },
     defaultStyle: { fontSize: 9, color: INK, font },
     content: [
+      ...(isBar
+        ? [
+            {
+              canvas: [
+                { type: "rect", x: 0, y: 0, w: contentWidth, h: 10, fillColor: brand },
+              ],
+              margin: margin(0, 0, 18),
+            },
+          ]
+        : []),
+
       ...(logo && (logoPosition === "center" || logoPosition === "right")
         ? [
             {
@@ -449,108 +487,106 @@ export function buildInvoiceDocDef(
       ...topRule,
 
       {
-        ...(isClassic || isElegant || isMinimal ? cardFlat : card)([
+        stack: [
           sectionLabel("BILLED TO"),
           {
             text: invoice.customerSnapshot.name || "Customer",
             fontSize: moneyFont,
             bold: true,
             color: INK,
+            lineHeight: 1.3,
+            margin: margin(1, 0, 0),
           },
           ...(invoice.customerSnapshot.company?.trim()
-            ? [{ text: invoice.customerSnapshot.company, fontSize: 8.5, color: MUTED }]
+            ? [{ text: invoice.customerSnapshot.company, fontSize: 8.5, color: MUTED, lineHeight: 1.4, margin: margin(1, 0, 0) }]
             : []),
-          smallLines([
-            invoice.customerSnapshot.email,
-            invoice.customerSnapshot.phone,
-            invoice.customerSnapshot.address,
-          ]),
-        ]),
+          {
+            text: [
+              invoice.customerSnapshot.email,
+              invoice.customerSnapshot.phone,
+              invoice.customerSnapshot.address,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            fontSize: 8.5,
+            lineHeight: 1.6,
+            color: MUTED,
+            margin: margin(1, 0, 0),
+          },
+        ],
         margin: margin(0, 0, 18),
       },
 
       {
         table: {
           headerRows: 1,
-          widths: [
-            Math.round(contentWidth * 0.38),
-            "*",
-            ...(showFrequencyCol ? [48] : []),
-            24,
-            56,
-            ...(showTaxCol ? [44] : []),
-            ...(showDiscountCol ? [48] : []),
-            72,
-          ],
+          widths: pdfWidths,
           body: [
-            [
-              { text: "Particulars", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 },
-              { text: "", fontSize: 8 },
-              ...(showFrequencyCol
-                ? [{ text: "Frequency", bold: true, color: isBold ? "white" : MUTED, fontSize: 8 }]
-                : []),
-              { text: "Qty", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
-              { text: "Rate", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
-              ...(showTaxCol
-                ? [{ text: "Tax", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 }]
-                : []),
-              ...(showDiscountCol
-                ? [{ text: "Discount", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 }]
-                : []),
-              { text: "Amount", bold: true, color: isBold ? "white" : MUTED, alignment: "right", fontSize: 8 },
-            ],
-            ...invoice.items.map((item) => [
-              {
-                stack: [
-                  {
-                    text: item.name || "Untitled item",
-                    bold: true,
-                    fontSize: 8.5,
-                    lineHeight: 1.3,
-                    color: INK,
-                  },
-                  ...(item.description?.trim()
-                    ? [{
-                        text: item.description.replace(/\s+/g, " ").trim(),
-                        fontSize: 7.5,
-                        lineHeight: 1.35,
-                        color: MUTED,
-                        margin: margin(1, 0, 0),
-                      }]
-                    : []),
-                  ...(item.comments?.trim()
-                    ? [{
-                        text: item.comments.replace(/\s+/g, " ").trim(),
-                        fontSize: 7.5,
-                        lineHeight: 1.35,
-                        italics: true,
-                        color: MUTED,
-                        margin: margin(1, 0, 0),
-                      }]
-                    : []),
-                ],
-              },
-              { text: "", fontSize: 8 },
-              ...(showFrequencyCol
-                ? [{
-                    text: item.frequency?.trim() || "—",
-                    alignment: "right",
-                    fontSize: 7.5,
-                  }]
-                : []),
-              {
-                text: trimNumber(item.quantity),
-                alignment: "right",
-              },
-              { text: money(item.rate), alignment: "right" },
-              ...(showTaxCol
-                ? [{ text: taxLabel(item.taxType, item.taxRate), alignment: "right" }]
-                : []),
-              ...(showDiscountCol
-                ? [{ text: item.discount ? `${trimNumber(item.discount)}%` : "—", alignment: "right" }]
-                : []),
-              { text: money(item.lineTotal), alignment: "right" },
-            ]),
+            columnDefs.map((def) => ({
+              text: def.label,
+              bold: true,
+              color: headerTint ? (isBold ? "#ffffff" : brand) : MUTED,
+              fontSize: 8,
+              alignment: def.align === "right" ? "right" : undefined,
+            })),
+            ...invoice.items.map((item) =>
+              columnDefs.map((def) => {
+                switch (def.key) {
+                  case "particulars":
+                    return {
+                      stack: [
+                        {
+                          text: item.name || "Untitled item",
+                          bold: true,
+                          fontSize: 8.5,
+                          lineHeight: 1.3,
+                          color: INK,
+                        },
+                        ...(item.description?.trim()
+                          ? [{
+                              text: item.description.replace(/\s+/g, " ").trim(),
+                              fontSize: 7.5,
+                              lineHeight: 1.35,
+                              color: MUTED,
+                              margin: margin(1, 0, 0),
+                            }]
+                          : []),
+                        ...(item.comments?.trim()
+                          ? [{
+                              text: item.comments.replace(/\s+/g, " ").trim(),
+                              fontSize: 7.5,
+                              lineHeight: 1.35,
+                              italics: true,
+                              color: MUTED,
+                              margin: margin(1, 0, 0),
+                            }]
+                          : []),
+                      ],
+                    };
+                  case "spacer":
+                    return { text: "", fontSize: 8 };
+                  case "frequency":
+                    return {
+                      text: item.frequency?.trim() || "—",
+                      alignment: def.align === "right" ? "right" : undefined,
+                      fontSize: 7.5,
+                      color: MUTED,
+                    };
+                  case "qty":
+                    return { text: trimNumber(item.quantity), alignment: "right" };
+                  case "rate":
+                    return { text: money(item.rate), alignment: "right" };
+                  case "tax":
+                    return { text: taxLabel(item.taxType, item.taxRate), alignment: "right", color: MUTED };
+                  case "discount":
+                    return { text: item.discount ? `${trimNumber(item.discount)}%` : "—", alignment: "right", color: MUTED };
+                  case "amount":
+                    return { text: money(item.lineTotal), alignment: "right" };
+                  default:
+                    return { text: "" };
+                }
+              })
+            ),
           ],
         },
         layout: {
@@ -563,9 +599,7 @@ export function buildInvoiceDocDef(
           paddingBottom: () => 6,
           fillColor: (rowIndex: number) =>
             rowIndex === 0
-              ? isBold
-                ? "#1c1917"
-                : null
+              ? headerTint ?? (isBold ? "#1c1917" : null)
               : null,
         },
         margin: margin(0, 0, 2),
@@ -601,7 +635,7 @@ export function buildInvoiceDocDef(
         margin: margin(20, 0, 0),
       },
 
-      ...(invoice.notes?.trim() || invoice.terms?.trim()
+      ...(!isBar && (invoice.notes?.trim() || invoice.terms?.trim())
         ? [
             {
               columns: [
@@ -634,7 +668,7 @@ export function buildInvoiceDocDef(
           ]
         : []),
 
-      ...(isFriendly
+      ...(!isBar && isFriendly
         ? [
             {
               text: "Thank you for your business!",
@@ -646,7 +680,7 @@ export function buildInvoiceDocDef(
           ]
         : []),
 
-      ...(options?.upiQrDataUrl && !isQuotation && business?.upiId
+      ...(!isBar && options?.upiQrDataUrl && !isQuotation && business?.upiId
         ? [
             {
               image: options.upiQrDataUrl,
@@ -658,19 +692,126 @@ export function buildInvoiceDocDef(
             {
               text: `Pay via UPI: ${business.upiId}`,
               alignment: "center",
-              fontSize: 8,
               color: MUTED,
-              margin: margin(4, 0, 0),
+              fontSize: 8,
+              margin: margin(4, 0, 1),
             },
           ]
         : []),
 
+      ...(isBar
+        ? [
+            {
+              table: {
+                widths: [contentWidth],
+                headerRows: 0,
+                body: [
+                  [
+                    {
+                      fillColor: brand,
+                      stack: [
+                        ...(invoice.notes?.trim() || invoice.terms?.trim()
+                          ? [
+                              {
+                                columns: [
+                                  ...(invoice.notes?.trim()
+                                    ? [
+                                        {
+                                          width: "*",
+                                          stack: [
+                                            { text: notesLabel, fontSize: 8, characterSpacing: 0.8, color: BAND_INK, margin: margin(0, 0, 4) },
+                                            { text: invoice.notes, color: BAND_INK, margin: margin(3, 0, 0) },
+                                          ],
+                                        },
+                                      ]
+                                    : []),
+                                  ...(invoice.terms?.trim()
+                                    ? [
+                                        {
+                                          width: "*",
+                                          stack: [
+                                            { text: termsLabel, fontSize: 8, characterSpacing: 0.8, color: BAND_INK, margin: margin(0, 0, 4) },
+                                            { text: invoice.terms, color: BAND_INK, margin: margin(3, 0, 0) },
+                                          ],
+                                        },
+                                      ]
+                                    : []),
+                                ],
+                                columnGap: 20,
+                              },
+                            ]
+                          : []),
+                        ...(isFriendly
+                          ? [
+                              {
+                                text: "Thank you for your business!",
+                                alignment: "center",
+                                bold: true,
+                                color: BAND_INK,
+                                fontSize: 9,
+                                margin: margin(14, 0, 2),
+                              },
+                            ]
+                          : []),
+                        ...(isFriendly && options?.upiQrDataUrl && !isQuotation && business?.upiId
+                          ? [
+                              {
+                                stack: [
+                                  ...(options.upiQrDataUrl
+                                    ? [
+                                        {
+                                          image: options.upiQrDataUrl,
+                                          width: 108,
+                                          height: 108,
+                                          alignment: "center",
+                                        },
+                                      ]
+                                    : []),
+                                  {
+                                    text: `Pay via UPI: ${business.upiId}`,
+                                    alignment: "center",
+                                    color: BAND_INK,
+                                    fontSize: 8,
+                                    margin: margin(4, 0, 1),
+                                  },
+                                ],
+                              },
+                            ]
+                          : []),
+                      ],
+                    },
+                  ],
+                ],
+              },
+              layout: {
+                hLineWidth: () => 0,
+                vLineWidth: () => 0,
+                paddingLeft: () => 16,
+                paddingRight: () => 16,
+                paddingTop: () => 16,
+                paddingBottom: () => 16,
+              },
+              margin: margin(0, 26, 0),
+            },
+          ]
+        : []),
+    ],
+    footer: footerDisclaimer(),
+  };
+}
+
+/**
+ * Page footer shared by invoice and receipt PDFs: a short credit line and a
+ * lightweight legal disclaimer, pinned to the bottom of every page (spec §11).
+ */
+function footerDisclaimer(): Record<string, unknown> {
+  return {
+    stack: [
       {
         text: "Generated with Invoicer by Swaniki · free, offline & privacy-first",
         alignment: "center",
         fontSize: 8,
         color: FAINT,
-        margin: margin(20, 0, 0),
       },
       {
         text: "Not tax or legal advice — verify for your jurisdiction before publishing.",
@@ -684,9 +825,7 @@ export function buildInvoiceDocDef(
 }
 
 /**
- * Build a local UPI QR for an invoice when the business has enabled it.
- * Encodes the UPI ID, payee name, invoice amount and reference; returns
- * undefined when UPI isn't configured or enabled (spec §19).
+ * Build the pdfmake document definition for a payment receipt (pure).
  */
 export async function buildUpiQrDataUrl(
   invoice: Invoice,
@@ -887,22 +1026,8 @@ export function buildReceiptDocDef(
             },
           ]
         : []),
-
-      {
-        text: "Generated with Invoicer by Swaniki · free, offline & privacy-first",
-        fontSize: 8,
-        color: FAINT,
-        alignment: "center",
-        margin: margin(24, 0, 0),
-      },
-      {
-        text: "Not tax or legal advice — verify for your jurisdiction before publishing.",
-        fontSize: 7,
-        color: FAINT,
-        alignment: "center",
-        margin: margin(3, 0, 0),
-      },
     ],
+    footer: footerDisclaimer(),
   };
 }
 

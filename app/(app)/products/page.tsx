@@ -14,16 +14,18 @@ import { db } from "@/lib/db/database";
 import { deleteProduct, listProducts, upsertProduct } from "@/lib/db/records";
 import { formatMoney } from "@/lib/formatting";
 import type { Product, ProductDraft } from "@/lib/types";
+import { FREQUENCY_OPTIONS } from "@/components/invoice/builder-utils";
 
 interface ProductForm {
   name: string;
   description: string;
   rate: string;
   taxRate: string;
+  frequency: string;
 }
 
 function blankForm(): ProductForm {
-  return { name: "", description: "", rate: "", taxRate: "" };
+  return { name: "", description: "", rate: "", taxRate: "", frequency: "" };
 }
 
 function formFromProduct(product: Product): ProductForm {
@@ -32,6 +34,7 @@ function formFromProduct(product: Product): ProductForm {
     description: product.description ?? "",
     rate: String(product.rate || ""),
     taxRate: String(product.taxRate || ""),
+    frequency: product.frequency ?? "",
   };
 }
 
@@ -111,6 +114,7 @@ export default function ProductsPage() {
         description: form.description.trim() || undefined,
         rate: rate ?? 0,
         taxRate: taxRate ?? null,
+        frequency: form.frequency.trim() || undefined,
       };
       await upsertProduct(draft);
       setFormOpen(false);
@@ -262,6 +266,21 @@ export default function ProductsPage() {
               value={form.taxRate}
               onChange={(e) => setForm({ ...form, taxRate: e.target.value })}
             />
+          </div>
+          <div>
+            <Label htmlFor="product-frequency">Frequency</Label>
+            <Input
+              id="product-frequency"
+              list="product-frequency-options"
+              placeholder="e.g. Monthly"
+              value={form.frequency}
+              onChange={(e) => setForm({ ...form, frequency: e.target.value })}
+            />
+            <datalist id="product-frequency-options">
+              {FREQUENCY_OPTIONS.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
           </div>
           <Button className="w-full" onClick={submitForm} disabled={busy === "save"}>
             {busy === "save" ? (

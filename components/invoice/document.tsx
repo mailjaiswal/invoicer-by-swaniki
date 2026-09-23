@@ -1,7 +1,16 @@
-import { formatMoney } from "@/lib/formatting";
+﻿import { formatMoney } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
 import { taxLabel } from "@/lib/calculations";
 import { buildUpiUrl, isValidUpiId } from "@/lib/upi";
+import {
+  contrastTextOn,
+  paletteForTemplate,
+  resolveAccent,
+} from "@/lib/template-palettes";
+import {
+  getItemColumnDefs,
+  htmlColumnWidths,
+} from "@/lib/item-columns";
 import {
   DEFAULT_ACCENT_COLOR,
   FONT_STACKS,
@@ -39,42 +48,35 @@ export function InvoiceDocument({
   const money = (amount: number) => formatMoney(amount, currency);
   const number = previewNumber || invoice.invoiceNumber;
 
-  const accent = settings?.accentColor?.trim() || DEFAULT_ACCENT_COLOR;
   const rawSelectedTemplate = templateProp ?? settings?.defaultTemplate ?? "modern";
   const template: InvoiceTemplateId = INVOICE_TEMPLATES.some(
     (t) => t.id === rawSelectedTemplate
   )
     ? (rawSelectedTemplate as InvoiceTemplateId)
     : "modern";
+  // resolveAccent returns hex WITHOUT '#'; CSS needs the '#', so add it back.
+  const accent = `#${resolveAccent(settings?.accentColor, template)}`;
+  const palette = paletteForTemplate(template);
+  const headerTint = palette.headerTint ? `#${palette.headerTint}` : null;
 
   const isClassic  = template === "classic";
   const isCompact  = template === "compact";
   const isMinimal  = template === "minimal";
   const isBold     = template === "bold";
   const isElegant  = template === "elegant";
+  const isBar      = template === "bar";
+
+  /** Table header fill/text and band ink, mirroring the PDF engine (lib/pdf.ts). */
+  const headerFill = headerTint ?? (isBold ? "#1c1917" : undefined);
+  const headerText = headerTint ? (isBold ? "#ffffff" : accent) : undefined;
+  const bandInk = contrastTextOn(accent) === "white" ? "#ffffff" : "#1c1917";
 
   const isQuotation = invoice.docType === "quotation";
   const docTitle = isQuotation ? "Quotation" : "Invoice";
 
   const lineItems = invoice.items ?? [];
-  const showFrequency = lineItems.some((i) => !!i.frequency?.trim());
-  const showTaxColumn = lineItems.some((i) => i.taxType !== "none");
-  const showDiscountColumn = lineItems.some((i) => (i.discount ?? 0) > 0);
-  const W_PARTICULARS = 38;
-  const W_FREQUENCY = 10;
-  const W_QTY = 6;
-  const W_RATE = 10;
-  const W_TAX = 8;
-  const W_DISCOUNT = 6;
-  const W_AMOUNT = 14;
-  const numericWidth =
-    (showFrequency ? W_FREQUENCY : 0) +
-    W_QTY +
-    W_RATE +
-    (showTaxColumn ? W_TAX : 0) +
-    (showDiscountColumn ? W_DISCOUNT : 0) +
-    W_AMOUNT;
-  const W_SPACER = Math.max(0, 100 - W_PARTICULARS - numericWidth);
+  const columnDefs = getItemColumnDefs(lineItems);
+  const columnWidths = htmlColumnWidths(columnDefs);
 
   const personality: InvoicePersonality =
     INVOICE_PERSONALITIES.some((p) => p.id === settings?.personality)
@@ -91,7 +93,7 @@ export function InvoiceDocument({
   const { cgst, sgst, igst } = invoice.taxBreakup;
   const orientation = settings?.pageOrientation ?? "portrait";
   const landscape = orientation === "landscape";
-  /** Screen approximation of one A4 page (portrait 794×1123, landscape 1123×794). */
+  /** Screen approximation of one A4 page (portrait 794Ã—1123, landscape 1123Ã—794). */
   const pageHeight = landscape ? 794 : 1123;
   const notesLabel = settings?.notesLabel?.trim() || "Notes";
   const termsLabel = settings?.termsLabel?.trim() || "Terms";
@@ -143,7 +145,7 @@ export function InvoiceDocument({
     />
   );
 
-  /* ── Header ─────────────────────────────────────────────────────────── */
+  /* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   const headerInner = (() => {
     if (isCompact) {
@@ -170,12 +172,12 @@ export function InvoiceDocument({
             </div>
           </div>
           <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-stone-500">
-            <span>Issued {invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span>
+            <span>Issued {invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "â€”"}</span>
             <span>
               {isQuotation ? "Valid until" : "Due"}{" "}
               {invoice.dueDate || invoice.validityDate ? formatIso(
                 (isQuotation ? invoice.validityDate : invoice.dueDate) ?? ""
-              ) : "—"}
+              ) : "â€”"}
             </span>
             {status && !isQuotation && <StatusBadge status={status} />}
           </div>
@@ -230,12 +232,12 @@ export function InvoiceDocument({
               </p>
             )}
             <div className={cn("flex flex-col gap-1 text-xs text-stone-500", isElegant ? "mt-3 sm:items-end" : "mt-3 sm:items-end")}>
-              <p>Issued: <span className="font-medium text-stone-800">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span></p>
+              <p>Issued: <span className="font-medium text-stone-800">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "â€”"}</span></p>
               <p>
                 {isQuotation ? "Valid until" : "Due"}: <span className="font-medium text-stone-800">
                   {(isQuotation ? invoice.validityDate : invoice.dueDate)
                     ? formatIso((isQuotation ? invoice.validityDate : invoice.dueDate) ?? "")
-                    : "—"}
+                    : "â€”"}
                 </span>
               </p>
               {status && !isQuotation && <div className="pt-1.5"><StatusBadge status={status} /></div>}
@@ -255,7 +257,7 @@ export function InvoiceDocument({
     );
   })();
 
-  /* ── Billed-to card ─────────────────────────────────────────────────── */
+  /* â”€â”€ Billed-to card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   const billedTo = (() => {
     const name = invoice.customerSnapshot.name || "Customer";
@@ -299,10 +301,10 @@ export function InvoiceDocument({
     );
   })();
 
-  /* ── Table header row colours ────────────────────────────────────────── */
+  /* â”€â”€ Table header row colours â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   const thRowCls = isBold
-    ? "bg-stone-950 text-white border-stone-800"
+    ? "text-white border-stone-800"
     : isElegant
       ? "border-stone-300"
       : isMinimal
@@ -316,7 +318,7 @@ export function InvoiceDocument({
     isMinimal ? "text-[11px] uppercase tracking-wider text-stone-400" : ""
   );
 
-  /* ── Render ──────────────────────────────────────────────────────────── */
+  /* â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   return (
     <div
@@ -345,6 +347,9 @@ export function InvoiceDocument({
                 : {}),
         }}
       >
+        {isBar && (
+          <div aria-hidden="true" className="h-2.5 w-full shrink-0" style={{ backgroundColor: accent }} />
+        )}
         <div className={cn(containerPadding, "flex flex-1 flex-col", isCompact ? "gap-3" : isMinimal ? "gap-5" : isElegant ? "gap-6" : "gap-6")}>
           {/* Logo row for center/right */}
           {(logoPosition === "center" || logoPosition === "right") && logoMark}
@@ -358,75 +363,91 @@ export function InvoiceDocument({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] table-fixed border-collapse text-sm">
               <colgroup>
-                <col style={{ width: `${W_PARTICULARS}%` }} />
-                <col style={{ width: `${W_SPACER}%` }} />
-                {showFrequency && (
-                  <col style={{ width: `${W_FREQUENCY}%` }} />
-                )}
-                <col style={{ width: `${W_QTY}%` }} />
-                <col style={{ width: `${W_RATE}%` }} />
-                {showTaxColumn && <col style={{ width: `${W_TAX}%` }} />}
-                {showDiscountColumn && (
-                  <col style={{ width: `${W_DISCOUNT}%` }} />
-                )}
-                <col style={{ width: `${W_AMOUNT}%` }} />
+                {columnWidths.map((col) => (
+                  <col key={col.key} style={{ width: `${col.widthPct}%` }} />
+                ))}
               </colgroup>
               <thead>
-                <tr className={cn("border-b text-left", thRowCls, thCellCls)}>
-                  <th className="py-2 pr-3 font-semibold">Particulars</th>
-                  <th className="py-2" aria-hidden="true" />
-                  {showFrequency && (
-                    <th className="py-2 pr-3 font-semibold">Frequency</th>
-                  )}
-                  <th className="py-2 pr-3 text-right font-semibold">Qty</th>
-                  <th className="py-2 pr-3 text-right font-semibold">Rate</th>
-                  {showTaxColumn && (
-                    <th className="py-2 pr-3 text-right font-semibold">Tax</th>
-                  )}
-                  {showDiscountColumn && (
-                    <th className="py-2 pr-3 text-right font-semibold">
-                      Discount
+                <tr
+                  className={cn("border-b text-left", thRowCls, thCellCls)}
+                  style={headerFill ? { backgroundColor: headerFill } : undefined}
+                >
+                  {columnDefs.map((def) => (
+                    <th
+                      key={def.key}
+                      className={cn(
+                        "py-2",
+                        headerFill && "px-2",
+                        def.key !== "spacer" && "pr-3 font-semibold",
+                        def.align === "right" && "text-right"
+                      )}
+                      style={headerText ? { color: headerText } : undefined}
+                      aria-hidden={def.key === "spacer" || undefined}
+                    >
+                      {def.label}
                     </th>
-                  )}
-                  <th className="py-2 text-right font-semibold">Amount</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {lineItems.map((item) => (
                   <tr key={item.id} className="border-b border-stone-100 align-top">
-                    <td className="break-words py-2.5 pr-3">
-                      <p className="break-words font-semibold text-stone-900" style={{ fontSize: "13px", lineHeight: "1.35" }}>
-                        {item.name || "Untitled item"}
-                      </p>
-                      {!!item.description && (
-                        <p className="break-words text-stone-500" style={{ fontSize: "11px", lineHeight: "1.4", marginTop: "2px" }}>
-                          {item.description}
-                        </p>
-                      )}
-                      {!!item.comments && (
-                        <p className="break-words italic text-stone-500" style={{ fontSize: "11px", lineHeight: "1.4", marginTop: "1px" }}>
-                          {item.comments.replace(/\s+/g, " ").trim()}
-                        </p>
-                      )}
-                    </td>
-                    <td className="py-2.5" aria-hidden="true" />
-                    {showFrequency && (
-                      <td
-                        className="break-words py-2.5 pr-3 text-stone-600"
-                        style={{ fontSize: "11px" }}
-                      >
-                        {item.frequency?.trim() || "—"}
-                      </td>
-                    )}
-                    <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}</td>
-                    <td className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{money(item.rate)}</td>
-                    {showTaxColumn && (
-                      <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{taxLabel(item.taxType, item.taxRate)}</td>
-                    )}
-                    {showDiscountColumn && (
-                      <td className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{item.discount ? `${trimNumber(item.discount)}%` : "—"}</td>
-                    )}
-                    <td className="py-2.5 text-right font-medium text-stone-900" style={{ fontSize: "13px" }}>{money(item.lineTotal)}</td>
+                    {columnDefs.map((def) => {
+                      switch (def.key) {
+                        case "particulars":
+                          return (
+                            <td key={def.key} className="break-words py-2.5 pr-3">
+                              <p className="break-words font-semibold text-stone-900" style={{ fontSize: "13px", lineHeight: "1.35" }}>
+                                {item.name || "Untitled item"}
+                              </p>
+                              {!!item.description && (
+                                <p className="break-words text-stone-500" style={{ fontSize: "11px", lineHeight: "1.4", marginTop: "2px" }}>
+                                  {item.description}
+                                </p>
+                              )}
+                              {!!item.comments && (
+                                <p className="break-words italic text-stone-500" style={{ fontSize: "11px", lineHeight: "1.4", marginTop: "1px" }}>
+                                  {item.comments.replace(/\s+/g, " ").trim()}
+                                </p>
+                              )}
+                            </td>
+                          );
+                        case "spacer":
+                          return <td key={def.key} className="py-2.5" aria-hidden="true" />;
+                        case "frequency":
+                          return (
+                            <td
+                              key={def.key}
+                              className="break-words py-2.5 pr-3 text-stone-600"
+                              style={{ fontSize: "11px" }}
+                            >
+                              {item.frequency?.trim() || "â€”"}
+                            </td>
+                          );
+                        case "qty":
+                          return (
+                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}</td>
+                          );
+                        case "rate":
+                          return (
+                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{money(item.rate)}</td>
+                          );
+                        case "tax":
+                          return (
+                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{taxLabel(item.taxType, item.taxRate)}</td>
+                          );
+                        case "discount":
+                          return (
+                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{item.discount ? `${trimNumber(item.discount)}%` : "â€”"}</td>
+                          );
+                        case "amount":
+                          return (
+                            <td key={def.key} className="py-2.5 text-right font-medium text-stone-900" style={{ fontSize: "13px" }}>{money(item.lineTotal)}</td>
+                          );
+                        default:
+                          return null;
+                      }
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -443,7 +464,7 @@ export function InvoiceDocument({
               {invoice.discount > 0 && (
                 <div className="flex items-center justify-between">
                   <dt className="text-stone-500">Discount</dt>
-                  <dd className="font-medium text-stone-800">−{money(invoice.discount)}</dd>
+                  <dd className="font-medium text-stone-800">âˆ’{money(invoice.discount)}</dd>
                 </div>
               )}
               {invoice.taxTotal > 0 && (
@@ -488,7 +509,7 @@ export function InvoiceDocument({
           </div>
 
           {/* Notes & terms */}
-          {(invoice.notes?.trim() || invoice.terms?.trim()) && (
+          {!isBar && (invoice.notes?.trim() || invoice.terms?.trim()) && (
             <div className={cn("grid gap-4 border-t border-stone-100 pt-4", isCompact ? "text-[10px]" : "text-xs", isCompact ? "" : "sm:grid-cols-2")}>
               {!!invoice.notes?.trim() && (
                 <div>
@@ -507,19 +528,53 @@ export function InvoiceDocument({
 
           {/* Footer */}
           <div className={cn("mt-auto border-t pt-4 text-center text-[11px] text-stone-400", isElegant ? "border-stone-200" : "border-stone-100")}>
-            {friendly && (
+            {friendly && !isBar && (
               <p className="mb-2 text-xs font-medium" style={{ color: accent }}>Thank you for your business!</p>
             )}
-            <p>Generated with Invoicer by Swaniki · free, offline &amp; privacy-first</p>
-            <p className="mt-1 text-[10px] text-stone-300">Not tax or legal advice — verify for your jurisdiction before publishing.</p>
-            {useUpiQr && (
+            <p>Generated with Invoicer by Swaniki Â· free, offline &amp; privacy-first</p>
+            <p className="mt-1 text-[10px] text-stone-300">Not tax or legal advice â€” verify for your jurisdiction before publishing.</p>
+            {useUpiQr && !isBar && (
               <div className="mt-3 flex flex-col items-center gap-2">
                 <UpiQr value={upiQrValue} size={96} label={`Pay via UPI: ${business?.upiId}`} />
               </div>
             )}
-            {!isQuotation && !!business?.upiId?.trim() && !useUpiQr && <p className="mt-1">Pay via UPI: {business.upiId}</p>}
+            {!isBar && !isQuotation && !!business?.upiId?.trim() && !useUpiQr && <p className="mt-1">Pay via UPI: {business.upiId}</p>}
           </div>
         </div>
+
+        {/* Bar template: solid accent band pinned to the bottom, mirroring the PDF */}
+        {isBar && (
+          <div
+            className="mt-4 px-6 py-4 text-xs sm:px-8"
+            style={{ backgroundColor: accent, color: bandInk }}
+          >
+            {(invoice.notes?.trim() || invoice.terms?.trim()) && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {!!invoice.notes?.trim() && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider opacity-80">{notesLabel}</p>
+                    <p className="mt-1 whitespace-pre-line leading-relaxed opacity-90">{invoice.notes}</p>
+                  </div>
+                )}
+                {!!invoice.terms?.trim() && (
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider opacity-80">{termsLabel}</p>
+                    <p className="mt-1 whitespace-pre-line leading-relaxed opacity-90">{invoice.terms}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {friendly && (
+              <p className="mt-3 text-center font-semibold">Thank you for your business!</p>
+            )}
+            {friendly && useUpiQr && (
+              <div className="mt-3 flex flex-col items-center gap-2">
+                <UpiQr value={upiQrValue} size={96} label={`Pay via UPI: ${business?.upiId}`} />
+                <p className="text-[11px] opacity-80">Pay via UPI: {business?.upiId}</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

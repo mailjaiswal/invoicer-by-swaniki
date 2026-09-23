@@ -6,6 +6,10 @@ import {
   buildPdfFileName,
   buildReceiptDocDef,
 } from "@/lib/pdf";
+import {
+  getItemColumnDefs,
+  pdfColumnWidths,
+} from "@/lib/item-columns";
 
 const require = createRequire(import.meta.url);
 const pdfMakeNode = require("pdfmake/js/index.js");
@@ -150,6 +154,36 @@ function defaultFont(docDef: unknown): string | null {
     }
   }
   return null;
+}
+
+/** Find the items table (one with a "Particulars" header cell) in a docDef. */
+function findItemsTable(
+  docDef: unknown
+): { widths: Array<number | "*">; body: Array<Array<{ text?: string }>> } | undefined {
+  if (Array.isArray(docDef)) {
+    for (const item of docDef) {
+      const hit = findItemsTable(item);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+  if (docDef && typeof docDef === "object") {
+    const obj = docDef as {
+      table?: { widths?: Array<number | "*">; body?: Array<Array<{ text?: string }>> };
+    };
+    if (
+      obj.table?.body?.length &&
+      obj.table.body[0].some((cell) => cell.text === "Particulars")
+    ) {
+      return { widths: obj.table.widths ?? [], body: obj.table.body };
+    }
+    for (const key of Object.keys(obj)) {
+      if (key === "table") continue;
+      const hit = findItemsTable((obj as Record<string, unknown>)[key]);
+      if (hit) return hit;
+    }
+  }
+  return undefined;
 }
 
 describe("buildPdfFileName", () => {
@@ -496,6 +530,36 @@ describe("pdfmake document definitions", () => {
     const text = collectText(doc);
     expect(text.some((t) => t === "Discount")).toBe(true);
     expect(text.some((t) => t === "Disc")).toBe(false);
+  });
+
+  it("sizes PDF columns from the shared config that drives the HTML preview", () => {
+    const invoice = sampleInvoice({
+      items: sampleInvoice().items.map((item, index) =>
+        index === 0 ? { ...item, frequency: "Monthly" } : item
+      ),
+    });
+    const defs = getItemColumnDefs(invoice.items);
+    const doc = buildInvoiceDocDef(
+      invoice,
+      {
+        id: "biz",
+        name: "Swaniki Studio",
+        email: "hi@swaniki.example",
+        phone: "+91 90000 00000",
+        address: "14th Cross, Indiranagar, Bengaluru",
+        gstin: "29ABCDE1234F1Z5",
+        createdAt: 0,
+        updatedAt: 0,
+      },
+      sampleSettings()
+    );
+    const table = findItemsTable(doc);
+    expect(table).toBeDefined();
+    expect(table!.widths).toEqual(
+      pdfColumnWidths(defs, 595.28 - 36 - 32)
+    );
+    const headers = table!.body[0].map((h: { text?: string }) => h.text ?? "");
+    expect(headers).toEqual(defs.map((d) => d.label));
   });
 
   it("renders a quotation title, valid-until date and no status", () => {

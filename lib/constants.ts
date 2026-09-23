@@ -114,6 +114,11 @@ export const INVOICE_TEMPLATES = [
     label: "Elegant",
     blurb: "Refined serif feel with a subtle double-rule masthead.",
   },
+  {
+    id: "bar",
+    label: "Bar",
+    blurb: "Bold solid accent bars at the top and bottom.",
+  },
 ] as const;
 
 export type InvoiceTemplateId = (typeof INVOICE_TEMPLATES)[number]["id"];
