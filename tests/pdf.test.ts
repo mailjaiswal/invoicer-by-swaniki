@@ -625,19 +625,21 @@ describe("pdfmake document definitions", () => {
       undefined,
       sampleSettings({ defaultTemplate: "classic" })
     );
-    const content = doc.content;
-    const topRule = content.find((item) => Array.isArray(item.canvas));
+    const content = doc.content as Array<Record<string, any>>;
+    const topRule = content.find((item: Record<string, any>) => Array.isArray(item.canvas));
     expect(topRule).toBeDefined();
     // In pdfmake, margins are [left, top, right, bottom]
     // topRule bottom margin (index 3) should be 18
-    expect(topRule.margin[3]).toBe(18);
+    expect(topRule?.margin[3]).toBe(18);
 
     const billedTo = content.find(
-      (item) => item.stack && item.stack.some((s) => s.text === "BILLED TO")
+      (item: Record<string, any>) =>
+        Array.isArray(item.stack) &&
+        item.stack.some((s: Record<string, any>) => s.text === "BILLED TO")
     );
     expect(billedTo).toBeDefined();
     // Billed to top margin (index 1) should be at least 4
-    expect(billedTo.margin[1]).toBeGreaterThanOrEqual(4);
+    expect(billedTo?.margin[1]).toBeGreaterThanOrEqual(4);
   });
 });
 
