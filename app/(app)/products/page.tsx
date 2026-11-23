@@ -116,7 +116,7 @@ export default function ProductsPage() {
         taxRate: taxRate ?? null,
         frequency: form.frequency.trim() || undefined,
       };
-      await upsertProduct(draft);
+      await upsertProduct(draft, editing?.id);
       setFormOpen(false);
       showToast(editing ? "Product updated." : "Product added.", "success");
     } catch (error) {

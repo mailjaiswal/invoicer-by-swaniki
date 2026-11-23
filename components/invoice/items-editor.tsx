@@ -15,6 +15,7 @@ import { Textarea } from "@/components/common/textarea";
 import { Select } from "@/components/common/select";
 import { Button } from "@/components/common/button";
 import { Sheet } from "@/components/common/sheet";
+import { Switch } from "@/components/common/switch";
 import { calcLine } from "@/lib/calculations";
 import { formatMoney } from "@/lib/formatting";
 import { CURRENCIES, type CurrencyCode } from "@/lib/constants";
@@ -118,6 +119,7 @@ export function ItemsEditor({
         discount: 0,
         taxType: "none",
         taxRate: 0,
+        saveProduct: true,
         ...line,
       },
     ]);
@@ -502,6 +504,26 @@ function ItemCard({
           placeholder="e.g. Includes setup, 2 revisions and a domain."
           value={line.comments ?? ""}
           onChange={(e) => onUpdate({ comments: e.target.value })}
+        />
+      </div>
+
+      <div className="mt-3 flex items-center justify-between rounded-lg border border-stone-200/70 bg-stone-50/60 p-2.5 dark:border-stone-800 dark:bg-stone-900/40">
+        <div className="space-y-0.5">
+          <Label
+            htmlFor={`save-product-${line.id}`}
+            className="text-xs font-medium cursor-pointer text-stone-900 dark:text-stone-100"
+          >
+            Save product configuration
+          </Label>
+          <p className="text-[11px] text-stone-500 dark:text-stone-400">
+            Save this product in your Products page for future invoices &amp; quotations
+          </p>
+        </div>
+        <Switch
+          id={`save-product-${line.id}`}
+          checked={line.saveProduct !== false}
+          onCheckedChange={(checked) => onUpdate({ saveProduct: checked })}
+          aria-label="Save product configuration to products page"
         />
       </div>
     </div>

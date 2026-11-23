@@ -21,7 +21,7 @@ import {
   getInvoice,
   saveInvoiceDraft,
 } from "@/lib/db/invoices";
-import { listCustomers, listProducts } from "@/lib/db/records";
+import { listCustomers, listProducts, upsertProduct } from "@/lib/db/records";
 import { formatInvoiceNumber } from "@/lib/invoice-numbering";
 import {
   calcInvoiceTotals,
@@ -395,6 +395,27 @@ export function InvoiceBuilder({
     }
     setSavingDraft(true);
     try {
+      for (const line of state.items) {
+        if (line.saveProduct !== false && line.name.trim()) {
+          try {
+            const saved = await upsertProduct(
+              {
+                name: line.name.trim(),
+                description: line.description?.trim() || undefined,
+                rate: line.rate,
+                frequency: line.frequency?.trim() || undefined,
+                taxRate: line.taxType === "percentage" ? line.taxRate : null,
+              },
+              line.productId
+            );
+            if (!line.productId) {
+              line.productId = saved.id;
+            }
+          } catch (e) {
+            console.error("Failed to save product:", e);
+          }
+        }
+      }
       const draft = buildDraft();
       const invoice = await saveInvoiceDraft(
         draft,
@@ -450,6 +471,27 @@ export function InvoiceBuilder({
     setFormError("");
     setSaving(true);
     try {
+      for (const line of state.items) {
+        if (line.saveProduct !== false && line.name.trim()) {
+          try {
+            const saved = await upsertProduct(
+              {
+                name: line.name.trim(),
+                description: line.description?.trim() || undefined,
+                rate: line.rate,
+                frequency: line.frequency?.trim() || undefined,
+                taxRate: line.taxType === "percentage" ? line.taxRate : null,
+              },
+              line.productId
+            );
+            if (!line.productId) {
+              line.productId = saved.id;
+            }
+          } catch (e) {
+            console.error("Failed to save product:", e);
+          }
+        }
+      }
       const draft = buildDraft();
 
       const invoice = await createInvoice(draft, {

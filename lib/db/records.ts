@@ -67,12 +67,15 @@ export async function findByProductName(
 }
 
 export async function upsertProduct(
-  draft: ProductDraft
+  draft: ProductDraft,
+  existingId?: string
 ): Promise<Product> {
   const name = draft.name.trim();
   if (!name) throw new DataError("Product name is required.");
 
-  const existing = await findByProductName(name);
+  const existing = existingId
+    ? (await db.products.get(existingId)) ?? (await findByProductName(name))
+    : await findByProductName(name);
   const timestamp = now();
 
   if (existing) {

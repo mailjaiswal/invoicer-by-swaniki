@@ -62,15 +62,21 @@ function sampleInvoice(): Invoice {
 }
 
 describe("lineFromProduct", () => {
-  it("builds a linked line from a product", () => {
+  it("builds a linked line from a product with saveProduct enabled by default", () => {
     const line = lineFromProduct(sampleProduct());
     expect(line.productId).toBe("prod-1");
     expect(line.linked).toBe(true);
+    expect(line.saveProduct).toBe(true);
     expect(line.name).toBe("Branded T-shirt");
     expect(line.rate).toBe(699);
     expect(line.taxType).toBe("percentage");
     expect(line.taxRate).toBe(18);
     expect(line.quantity).toBe(1);
+  });
+
+  it("enables saveProduct on blank lines created in invoice view by default", () => {
+    const line = blankLine();
+    expect(line.saveProduct).toBe(true);
   });
 });
 

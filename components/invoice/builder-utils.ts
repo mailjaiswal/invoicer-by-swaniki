@@ -12,6 +12,8 @@ export interface BuilderLine {
   productId?: string;
   /** When true the line keeps pulling name/description/rate/tax from the linked product. */
   linked?: boolean;
+  /** When true (enabled by default), saves or updates this product configuration in the Products catalog. */
+  saveProduct?: boolean;
   name: string;
   description?: string;
   comments?: string;
@@ -98,6 +100,7 @@ export function blankLine(
     taxType,
     taxRate,
     frequency: "",
+    saveProduct: true,
   };
 }
 
@@ -107,6 +110,7 @@ export function lineFromProduct(product: Product): BuilderLine {
     id: uid("item"),
     productId: product.id,
     linked: true,
+    saveProduct: true,
     name: product.name,
     description: product.description,
     quantity: 1,
@@ -185,6 +189,7 @@ export function stateFromInvoice(
       id: uid("item"),
       productId: item.productId,
       linked: !!item.productId,
+      saveProduct: true,
       name: item.name,
       description: item.description,
       comments: item.comments,
@@ -254,6 +259,8 @@ export function normalizeBuilderState(
       productId: str(item.productId) || undefined,
       linked:
         typeof item.linked === "boolean" ? item.linked : undefined,
+      saveProduct:
+        typeof item.saveProduct === "boolean" ? item.saveProduct : true,
       name: str(item.name),
       description: str(item.description) || undefined,
       comments: str(item.comments) || undefined,

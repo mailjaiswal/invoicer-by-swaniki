@@ -1,4 +1,4 @@
-﻿import { formatMoney } from "@/lib/formatting";
+import { formatMoney } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
 import { taxLabel } from "@/lib/calculations";
 import { buildUpiUrl, isValidUpiId } from "@/lib/upi";
