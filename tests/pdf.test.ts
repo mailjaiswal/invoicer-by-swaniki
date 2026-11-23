@@ -617,6 +617,28 @@ describe("pdfmake document definitions", () => {
     const text = collectText(doc);
     expect(text.some((t) => t.includes("Not tax or legal advice"))).toBe(true);
   });
+
+  it("applies proper spacing before and after the horizontal rule and BILLED TO section", () => {
+    const invoice = sampleInvoice();
+    const doc = buildInvoiceDocDef(
+      invoice,
+      undefined,
+      sampleSettings({ defaultTemplate: "classic" })
+    );
+    const content = doc.content;
+    const topRule = content.find((item) => Array.isArray(item.canvas));
+    expect(topRule).toBeDefined();
+    // In pdfmake, margins are [left, top, right, bottom]
+    // topRule bottom margin (index 3) should be 18
+    expect(topRule.margin[3]).toBe(18);
+
+    const billedTo = content.find(
+      (item) => item.stack && item.stack.some((s) => s.text === "BILLED TO")
+    );
+    expect(billedTo).toBeDefined();
+    // Billed to top margin (index 1) should be at least 4
+    expect(billedTo.margin[1]).toBeGreaterThanOrEqual(4);
+  });
 });
 
 const PNG_1PX =

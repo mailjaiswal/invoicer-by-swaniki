@@ -182,7 +182,7 @@ const CARD_LAYOUT = {
 };
 
 function margin(top = 0, right = 0, bottom = 0, left = 0): [number, number, number, number] {
-  return [top, right, bottom, left];
+  return [left, top, right, bottom];
 }
 
 function sectionLabel(text: string) {
@@ -514,7 +514,7 @@ export function buildInvoiceDocDef(
             margin: margin(1, 0, 0),
           },
         ],
-        margin: margin(0, 0, 18),
+        margin: margin(4, 0, 18),
       },
 
       {
@@ -791,7 +791,7 @@ export function buildInvoiceDocDef(
                 paddingTop: () => 16,
                 paddingBottom: () => 16,
               },
-              margin: margin(0, 26, 0),
+              margin: margin(26, 0, 0),
             },
           ]
         : []),
