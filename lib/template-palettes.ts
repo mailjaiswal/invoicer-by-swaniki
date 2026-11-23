@@ -30,6 +30,12 @@ export const TEMPLATE_PALETTES: TemplatePalettes = {
   classic: { accent: "1a6553", headerTint: "e7e5e4" },
   minimal: { accent: "1a6553", headerTint: "f4f4f5" },
   bar: { accent: "1a6553", headerTint: null },
+  atelier: { accent: "1c1917", headerTint: "f5f5f4" },
+  quartz: { accent: "4f46e5", headerTint: "e0e7ff" },
+  nordic: { accent: "b4533c", headerTint: "efe8dc" },
+  botanical: { accent: "1e3024", headerTint: "e2ebe4" },
+  couture: { accent: "000000", headerTint: "f4f4f5" },
+  solarpunk: { accent: "059669", headerTint: "d1fae5" },
 } as const;
 
 /** Fallback used when a template id is unknown or no palette exists. */

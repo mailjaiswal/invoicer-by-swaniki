@@ -129,6 +129,26 @@ export const INVOICE_TEMPLATES = [
     label: "Quartz",
     blurb: "Luminous hybrid fintech with dual-tone bento cards and gradient total.",
   },
+  {
+    id: "nordic",
+    label: "Nordic",
+    blurb: "Warm sand and terracotta with calm, rounded bento cards.",
+  },
+  {
+    id: "botanical",
+    label: "Botanical",
+    blurb: "Forest moss and sage tones with an artisanal organic feel.",
+  },
+  {
+    id: "couture",
+    label: "Couture",
+    blurb: "Monochrome high-fashion runway editorial with monumental typography.",
+  },
+  {
+    id: "solarpunk",
+    label: "Solarpunk",
+    blurb: "Clean energy eco-fintech with radiant amber and solar emerald accents.",
+  },
 ] as const;
 
 export type InvoiceTemplateId = (typeof INVOICE_TEMPLATES)[number]["id"];

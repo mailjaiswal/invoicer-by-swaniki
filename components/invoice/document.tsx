@@ -67,6 +67,10 @@ export function InvoiceDocument({
   const isBar      = template === "bar";
   const isAtelier  = template === "atelier";
   const isQuartz   = template === "quartz";
+  const isNordic   = template === "nordic";
+  const isBotanical= template === "botanical";
+  const isCouture  = template === "couture";
+  const isSolarpunk= template === "solarpunk";
 
   /** Table header fill/text and band ink, mirroring the PDF engine (lib/pdf.ts). */
   const headerFill = headerTint ?? (isBold ? "#1c1917" : undefined);
@@ -250,6 +254,10 @@ export function InvoiceDocument({
         {isClassic && <div className="border-b" style={{ borderColor: accent }} aria-hidden="true" />}
         {isAtelier && <div className="border-b border-[#E7E2D8]" aria-hidden="true" />}
         {isQuartz && <div className="border-b border-indigo-100" aria-hidden="true" />}
+        {isNordic && <div className="border-b border-[#E3DDD1]" aria-hidden="true" />}
+        {isBotanical && <div className="border-b border-[#D7CEBE]" aria-hidden="true" />}
+        {isCouture && <div className="border-b border-black" aria-hidden="true" />}
+        {isSolarpunk && <div className="border-b border-emerald-100" aria-hidden="true" />}
         {isElegant && (
           <div className="space-y-[2px]" aria-hidden="true">
             <div className="border-b border-stone-300" />
@@ -302,6 +310,34 @@ export function InvoiceDocument({
     if (isQuartz) {
       return (
         <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-slate-50 to-indigo-50/40 p-4">
+          {content}
+        </div>
+      );
+    }
+    if (isNordic) {
+      return (
+        <div className="rounded-2xl border border-[#EBE4D8] bg-white/80 p-4">
+          {content}
+        </div>
+      );
+    }
+    if (isBotanical) {
+      return (
+        <div className="rounded-xl border border-[#D7CEBE] bg-white/80 p-4">
+          {content}
+        </div>
+      );
+    }
+    if (isCouture) {
+      return (
+        <div className="border-l-4 border-black py-1 pl-4">
+          {content}
+        </div>
+      );
+    }
+    if (isSolarpunk) {
+      return (
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-4">
           {content}
         </div>
       );
@@ -364,7 +400,15 @@ export function InvoiceDocument({
                 ? { borderTop: "4px solid #1C1917", backgroundColor: "#FCFAF6" }
                 : isQuartz
                   ? { borderTop: "4px solid #4F46E5" }
-                  : isMinimal
+                  : isNordic
+                    ? { borderTop: "4px solid #B4533C", backgroundColor: "#F9F6F0" }
+                    : isBotanical
+                      ? { borderTop: "4px solid #1E3024", backgroundColor: "#FAF8F5" }
+                      : isCouture
+                        ? { borderTop: "4px solid #000000" }
+                        : isSolarpunk
+                          ? { borderTop: "4px solid #059669" }
+                          : isMinimal
                     ? { borderTop: "1px solid #d6d3d1" }
                     : {}),
         }}

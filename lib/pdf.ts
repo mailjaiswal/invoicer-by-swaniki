@@ -255,6 +255,10 @@ export function buildInvoiceDocDef(
   const isElegant = template === "elegant";
   const isAtelier = template === "atelier";
   const isQuartz = template === "quartz";
+  const isNordic = template === "nordic";
+  const isBotanical = template === "botanical";
+  const isCouture = template === "couture";
+  const isSolarpunk = template === "solarpunk";
   const personality = settings?.personality ?? "professional";
   const isMinimalPersonality = personality === "minimal";
   const isFriendly = personality === "friendly";
@@ -376,6 +380,42 @@ export function buildInvoiceDocDef(
                     margin: margin(0, 0, 18),
                   },
                 ]
+              : isNordic
+                ? [
+                    {
+                      canvas: [
+                        { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1, lineColor: "#E3DDD1" },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
+              : isBotanical
+                ? [
+                    {
+                      canvas: [
+                        { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1, lineColor: "#D7CEBE" },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
+              : isCouture
+                ? [
+                    {
+                      canvas: [
+                        { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1.5, lineColor: "#000000" },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
+              : isSolarpunk
+                ? [
+                    {
+                      canvas: [
+                        { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1.5, lineColor: brand },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
               : [];
 
   const notesLabel = (settings?.notesLabel?.trim() || "Notes").toUpperCase();
