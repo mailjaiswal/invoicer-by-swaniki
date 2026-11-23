@@ -93,8 +93,8 @@ export function DataSection() {
       const result = await importBackup(file, mode);
       showToast(
         mode === "replace"
-          ? `Backup restored â€” ${result.records} records.`
-          : `Backup merged â€” ${result.records} records added.`,
+          ? `Backup restored — ${result.records} records.`
+          : `Backup merged — ${result.records} records added.`,
         "success"
       );
       setPendingImport(null);
@@ -159,7 +159,7 @@ export function DataSection() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button onClick={exportBackup} disabled={exporting || reading} className="flex-1">
               <Download className="h-4 w-4" aria-hidden="true" />
-              {exporting ? "Exportingâ€¦" : "Export Backup"}
+              {exporting ? "Exporting…" : "Export Backup"}
             </Button>
             <Button
               variant="secondary"
@@ -168,7 +168,7 @@ export function DataSection() {
               className="flex-1"
             >
               <Upload className="h-4 w-4" aria-hidden="true" />
-              {reading ? "Readingâ€¦" : "Import Backup"}
+              {reading ? "Reading…" : "Import Backup"}
             </Button>
             <input
               ref={fileInputRef}
@@ -192,14 +192,14 @@ export function DataSection() {
           <CardHeader>
             <CardTitle>Developer tools</CardTitle>
             <CardDescription>
-              Visible in development builds only â€” never in production. Replaces
+              Visible in development builds only — never in production. Replaces
               customers, products, invoices and payments.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={loadDemoData} disabled={demoloading}>
               <FlaskConical className="h-4 w-4" aria-hidden="true" />
-              {demoloading ? "Loadingâ€¦" : "Load demo data"}
+              {demoloading ? "Loading…" : "Load demo data"}
             </Button>
           </CardContent>
         </Card>
@@ -222,7 +222,7 @@ export function DataSection() {
           </Button>
           <p className="mt-2 flex items-center gap-1.5 text-xs text-stone-400 dark:text-stone-500">
             <Database className="h-3.5 w-3.5" aria-hidden="true" />
-            Consider exporting a backup first â€” storage is local only.
+            Consider exporting a backup first — storage is local only.
           </p>
         </CardContent>
       </Card>
@@ -291,7 +291,7 @@ export function DataSection() {
         <p>
           This permanently deletes every invoice, customer, product, payment
           and setting on this device. Invoicer stores data only on this device
-          â€” there is no cloud copy. Export a backup first if you might need any
+          — there is no cloud copy. Export a backup first if you might need any
           of this again.
         </p>
       </ConfirmDialog>

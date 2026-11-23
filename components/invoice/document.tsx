@@ -151,7 +151,7 @@ export function InvoiceDocument({
     />
   );
 
-  /* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Header ──────────────────────────────────────────────────────────── */
 
   const headerInner = (() => {
     if (isCompact) {
@@ -178,12 +178,12 @@ export function InvoiceDocument({
             </div>
           </div>
           <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-stone-500">
-            <span>Issued {invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "â€”"}</span>
+            <span>Issued {invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span>
             <span>
               {isQuotation ? "Valid until" : "Due"}{" "}
               {invoice.dueDate || invoice.validityDate ? formatIso(
                 (isQuotation ? invoice.validityDate : invoice.dueDate) ?? ""
-              ) : "â€”"}
+              ) : "—"}
             </span>
             {status && !isQuotation && <StatusBadge status={status} />}
           </div>
@@ -238,12 +238,12 @@ export function InvoiceDocument({
               </p>
             )}
             <div className={cn("flex flex-col gap-1 text-xs text-stone-500", isElegant ? "mt-3 sm:items-end" : "mt-3 sm:items-end")}>
-              <p>Issued: <span className="font-medium text-stone-800">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "â€”"}</span></p>
+              <p>Issued: <span className="font-medium text-stone-800">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span></p>
               <p>
                 {isQuotation ? "Valid until" : "Due"}: <span className="font-medium text-stone-800">
                   {(isQuotation ? invoice.validityDate : invoice.dueDate)
                     ? formatIso((isQuotation ? invoice.validityDate : invoice.dueDate) ?? "")
-                    : "â€”"}
+                    : "—"}
                 </span>
               </p>
               {status && !isQuotation && <div className="pt-1.5"><StatusBadge status={status} /></div>}
@@ -269,7 +269,7 @@ export function InvoiceDocument({
     );
   })();
 
-  /* â”€â”€ Billed-to card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Billed-to card ─────────────────────────────────────────────────── */
 
   const billedTo = (() => {
     const name = invoice.customerSnapshot.name || "Customer";
@@ -355,7 +355,7 @@ export function InvoiceDocument({
     );
   })();
 
-  /* â”€â”€ Table header row colours â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Table header row colours ────────────────────────────────────────── */
 
   const thRowCls = isBold
     ? "text-white border-stone-800"
@@ -372,7 +372,7 @@ export function InvoiceDocument({
     isMinimal ? "text-[11px] uppercase tracking-wider text-stone-400" : ""
   );
 
-  /* â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ── Render ──────────────────────────────────────────────────────────── */
 
   return (
     <div
@@ -442,9 +442,10 @@ export function InvoiceDocument({
                     <th
                       key={def.key}
                       className={cn(
-                        "py-2",
+                        "py-2 whitespace-nowrap",
                         headerFill && "px-2",
-                        def.key !== "spacer" && "pr-3 font-semibold",
+                        def.key !== "spacer" && def.key !== "amount" && "pr-3 font-semibold",
+                        def.key === "amount" && "font-semibold",
                         def.align === "right" && "text-right"
                       )}
                       style={headerText ? { color: headerText } : undefined}
@@ -487,28 +488,28 @@ export function InvoiceDocument({
                               className="break-words py-2.5 pr-3 text-stone-600"
                               style={{ fontSize: "11px" }}
                             >
-                              {item.frequency?.trim() || "â€”"}
+                              {item.frequency?.trim() || "\u2014"}
                             </td>
                           );
                         case "qty":
                           return (
-                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}</td>
+                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-700 whitespace-nowrap" style={{ fontSize: "13px" }}>{trimNumber(item.quantity)}</td>
                           );
                         case "rate":
                           return (
-                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-700" style={{ fontSize: "13px" }}>{money(item.rate)}</td>
+                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-700 whitespace-nowrap" style={{ fontSize: "13px" }}>{money(item.rate)}</td>
                           );
                         case "tax":
                           return (
-                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{taxLabel(item.taxType, item.taxRate)}</td>
+                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-500 whitespace-nowrap" style={{ fontSize: "13px" }}>{taxLabel(item.taxType, item.taxRate)}</td>
                           );
                         case "discount":
                           return (
-                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-500" style={{ fontSize: "13px" }}>{item.discount ? `${trimNumber(item.discount)}%` : "â€”"}</td>
+                            <td key={def.key} className="py-2.5 pr-3 text-right text-stone-500 whitespace-nowrap" style={{ fontSize: "13px" }}>{item.discount ? `${trimNumber(item.discount)}%` : "\u2014"}</td>
                           );
                         case "amount":
                           return (
-                            <td key={def.key} className="py-2.5 text-right font-medium text-stone-900" style={{ fontSize: "13px" }}>{money(item.lineTotal)}</td>
+                            <td key={def.key} className="py-2.5 text-right font-medium text-stone-900 whitespace-nowrap" style={{ fontSize: "13px" }}>{money(item.lineTotal)}</td>
                           );
                         default:
                           return null;
@@ -530,7 +531,7 @@ export function InvoiceDocument({
               {invoice.discount > 0 && (
                 <div className="flex items-center justify-between">
                   <dt className="text-stone-500">Discount</dt>
-                  <dd className="font-medium text-stone-800">âˆ’{money(invoice.discount)}</dd>
+                  <dd className="font-medium text-stone-800">−{money(invoice.discount)}</dd>
                 </div>
               )}
               {invoice.taxTotal > 0 && (
@@ -597,8 +598,8 @@ export function InvoiceDocument({
             {friendly && !isBar && (
               <p className="mb-2 text-xs font-medium" style={{ color: accent }}>Thank you for your business!</p>
             )}
-            <p>Generated with Invoicer by Swaniki Â· free, offline &amp; privacy-first</p>
-            <p className="mt-1 text-[10px] text-stone-300">Not tax or legal advice â€” verify for your jurisdiction before publishing.</p>
+            <p>Generated with Invoicer by Swaniki · free, offline &amp; privacy-first</p>
+            <p className="mt-1 text-[10px] text-stone-300">Not tax or legal advice — verify for your jurisdiction before publishing.</p>
             {useUpiQr && !isBar && (
               <div className="mt-3 flex flex-col items-center gap-2">
                 <UpiQr value={upiQrValue} size={96} label={`Pay via UPI: ${business?.upiId}`} />

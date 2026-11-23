@@ -31,7 +31,7 @@ export interface ItemColumnDef {
   width?: number;
 }
 
-export const PARTICULARS_WIDTH_PCT = 38;
+export const PARTICULARS_WIDTH_PCT = 35;
 
 /** Show quantities every time; other extras only appear when they're used. */
 export function getItemColumnDefs(
@@ -45,15 +45,15 @@ export function getItemColumnDefs(
     { key: "particulars", label: "Particulars", align: "left" },
     { key: "spacer", label: "", align: "left" },
     ...(hasFrequency
-      ? [{ key: "frequency" as const, label: "Frequency", align: "left" as const, width: 10 }]
+      ? [{ key: "frequency" as const, label: "Frequency", align: "left" as const, width: 12 }]
       : []),
     { key: "qty", label: "Qty", align: "right", width: 6 },
-    { key: "rate", label: "Rate", align: "right", width: 10 },
+    { key: "rate", label: "Rate", align: "right", width: 11 },
     ...(hasTax
       ? [{ key: "tax" as const, label: "Tax", align: "right" as const, width: 8 }]
       : []),
     ...(hasDiscount
-      ? [{ key: "discount" as const, label: "Discount", align: "right" as const, width: 6 }]
+      ? [{ key: "discount" as const, label: "Discount", align: "right" as const, width: 10 }]
       : []),
     { key: "amount", label: "Amount", align: "right", width: 14 },
   ];
