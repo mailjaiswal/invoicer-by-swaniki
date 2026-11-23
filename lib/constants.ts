@@ -119,6 +119,16 @@ export const INVOICE_TEMPLATES = [
     label: "Bar",
     blurb: "Bold solid accent bars at the top and bottom.",
   },
+  {
+    id: "atelier",
+    label: "Atelier",
+    blurb: "Architectural editorial with warm paper and refined bento cards.",
+  },
+  {
+    id: "quartz",
+    label: "Quartz",
+    blurb: "Luminous hybrid fintech with dual-tone bento cards and gradient total.",
+  },
 ] as const;
 
 export type InvoiceTemplateId = (typeof INVOICE_TEMPLATES)[number]["id"];

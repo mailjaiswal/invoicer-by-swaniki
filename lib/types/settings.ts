@@ -1,7 +1,7 @@
 import type { CurrencyCode, ThemeMode, TaxMode } from "./misc";
 import type { DocFontId } from "@/lib/constants";
 
-export type InvoiceTemplateId = "modern" | "classic" | "compact" | "minimal" | "bold" | "elegant" | "bar";
+export type InvoiceTemplateId = "modern" | "classic" | "compact" | "minimal" | "bold" | "elegant" | "bar" | "atelier" | "quartz";
 
 export type InvoicePersonality = "professional" | "minimal" | "friendly";
 

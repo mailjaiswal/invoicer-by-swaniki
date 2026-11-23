@@ -65,6 +65,8 @@ export function InvoiceDocument({
   const isBold     = template === "bold";
   const isElegant  = template === "elegant";
   const isBar      = template === "bar";
+  const isAtelier  = template === "atelier";
+  const isQuartz   = template === "quartz";
 
   /** Table header fill/text and band ink, mirroring the PDF engine (lib/pdf.ts). */
   const headerFill = headerTint ?? (isBold ? "#1c1917" : undefined);
@@ -246,6 +248,8 @@ export function InvoiceDocument({
         </div>
 
         {isClassic && <div className="border-b" style={{ borderColor: accent }} aria-hidden="true" />}
+        {isAtelier && <div className="border-b border-[#E7E2D8]" aria-hidden="true" />}
+        {isQuartz && <div className="border-b border-indigo-100" aria-hidden="true" />}
         {isElegant && (
           <div className="space-y-[2px]" aria-hidden="true">
             <div className="border-b border-stone-300" />
@@ -287,6 +291,20 @@ export function InvoiceDocument({
     }
     if (isElegant) {
       return <div className="py-1">{content}</div>;
+    }
+    if (isAtelier) {
+      return (
+        <div className="rounded-xl border border-[#E7E2D8] bg-white/80 p-4">
+          {content}
+        </div>
+      );
+    }
+    if (isQuartz) {
+      return (
+        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-slate-50 to-indigo-50/40 p-4">
+          {content}
+        </div>
+      );
     }
     if (isMinimal) {
       return <div className="border-t border-stone-200 pt-3">{content}</div>;
@@ -342,9 +360,13 @@ export function InvoiceDocument({
             ? { borderTop: `4px solid ${accent}` }
             : isBold
               ? { borderTop: `6px solid ${accent}` }
-              : isMinimal
-                ? { borderTop: "1px solid #d6d3d1" }
-                : {}),
+              : isAtelier
+                ? { borderTop: "4px solid #1C1917", backgroundColor: "#FCFAF6" }
+                : isQuartz
+                  ? { borderTop: "4px solid #4F46E5" }
+                  : isMinimal
+                    ? { borderTop: "1px solid #d6d3d1" }
+                    : {}),
         }}
       >
         {isBar && (

@@ -253,6 +253,8 @@ export function buildInvoiceDocDef(
   const isBold = template === "bold";
   const isBar = template === "bar";
   const isElegant = template === "elegant";
+  const isAtelier = template === "atelier";
+  const isQuartz = template === "quartz";
   const personality = settings?.personality ?? "professional";
   const isMinimalPersonality = personality === "minimal";
   const isFriendly = personality === "friendly";
@@ -356,7 +358,25 @@ export function buildInvoiceDocDef(
                 margin: margin(0, 0, 18),
               },
             ]
-          : [];
+          : isAtelier
+            ? [
+                {
+                  canvas: [
+                    { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.8, lineColor: "#E7E2D8" },
+                  ],
+                  margin: margin(0, 0, 18),
+                },
+              ]
+            : isQuartz
+              ? [
+                  {
+                    canvas: [
+                      { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 2, lineColor: brand },
+                    ],
+                    margin: margin(0, 0, 18),
+                  },
+                ]
+              : [];
 
   const notesLabel = (settings?.notesLabel?.trim() || "Notes").toUpperCase();
   const termsLabel = (settings?.termsLabel?.trim() || "Terms").toUpperCase();
