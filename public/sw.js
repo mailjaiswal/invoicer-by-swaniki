@@ -1,11 +1,11 @@
-﻿/* Invoicer by Swaniki — service worker.
+/* Invoicer by Swaniki — service worker.
    Served as a static asset so it works on any host (Vercel, plain static).
    Strategy: precache the app shell (every route), then serve navigations
    network-first (cache on success) so deployed updates reach clients on the
    next reload. Static hashed chunks are cache-first. While offline the shell
    cache keeps the app fully usable. Bump VERSION to force a fresh shell. */
 
-const VERSION = "v1.0.0-m17";
+const VERSION = "v1.0.0-m18";
 const CACHE = `invoicer-swaniki-${VERSION}`;
 
 const SHELL = [

@@ -119,10 +119,11 @@ export function InvoiceDocument({
   const notesLabel = settings?.notesLabel?.trim() || "Notes";
   const termsLabel = settings?.termsLabel?.trim() || "Terms";
   const upiId = business?.upiId?.trim();
+  const showQr = business?.showUpiQr !== false;
   const useUpiQr =
     !isQuotation &&
     !!upiId &&
-    !!business?.showUpiQr &&
+    showQr &&
     isValidUpiId(upiId);
   const upiQrValue = useUpiQr
     ? buildUpiUrl({
@@ -878,6 +879,28 @@ export function InvoiceDocument({
             </div>
           )}
 
+          {/* Payment & UPI QR section */}
+          {!isBar && !isQuotation && !!upiId && (
+            <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-stone-200/80 bg-stone-50/70 p-3.5 sm:flex-row dark:border-stone-800 dark:bg-stone-900/40">
+              <div className="space-y-0.5 text-center sm:text-left">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                  Instant Payment via UPI
+                </p>
+                <p className="font-mono text-xs font-bold text-stone-900 dark:text-white">
+                  {upiId}
+                </p>
+                <p className="text-[10px] text-stone-400 dark:text-stone-500">
+                  Scan with GPay, PhonePe, Paytm, BHIM or any UPI app
+                </p>
+              </div>
+              {useUpiQr && (
+                <div className="flex shrink-0 items-center justify-center">
+                  <UpiQr value={upiQrValue} size={92} className="gap-1" />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Footer */}
           <div className={cn("mt-auto border-t pt-4 text-center text-[11px] text-stone-400", isElegant ? "border-stone-200" : "border-stone-100")}>
             {friendly && !isBar && (
@@ -885,12 +908,6 @@ export function InvoiceDocument({
             )}
             <p>Generated with Invoicer by Swaniki · free, offline &amp; privacy-first</p>
             <p className="mt-1 text-[10px] text-stone-300">Not tax or legal advice — verify for your jurisdiction before publishing.</p>
-            {useUpiQr && !isBar && (
-              <div className="mt-3 flex flex-col items-center gap-2">
-                <UpiQr value={upiQrValue} size={96} label={`Pay via UPI: ${business?.upiId}`} />
-              </div>
-            )}
-            {!isBar && !isQuotation && !!business?.upiId?.trim() && !useUpiQr && <p className="mt-1">Pay via UPI: {business.upiId}</p>}
           </div>
         </div>
 
@@ -919,11 +936,13 @@ export function InvoiceDocument({
             {friendly && (
               <p className="mt-3 text-center font-semibold">Thank you for your business!</p>
             )}
-            {friendly && useUpiQr && (
+            {useUpiQr && (
               <div className="mt-3 flex flex-col items-center gap-2">
                 <UpiQr value={upiQrValue} size={96} label={`Pay via UPI: ${business?.upiId}`} />
-                <p className="text-[11px] opacity-80">Pay via UPI: {business?.upiId}</p>
               </div>
+            )}
+            {!useUpiQr && !!business?.upiId?.trim() && (
+              <p className="mt-2 text-center text-[11px] opacity-80">Pay via UPI: {business?.upiId}</p>
             )}
           </div>
         )}

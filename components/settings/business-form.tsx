@@ -39,6 +39,9 @@ export function BusinessForm({ initial }: { initial?: Business }) {
     additionalInfo: initial?.additionalInfo ?? "",
   });
   const [logo, setLogo] = React.useState<string | null>(initial?.logo ?? null);
+  const [showUpiQr, setShowUpiQr] = React.useState<boolean>(
+    initial?.showUpiQr !== false
+  );
   const [saving, setSaving] = React.useState(false);
 
   function setField<K extends keyof BusinessFormState>(key: K, value: string) {
@@ -62,6 +65,7 @@ export function BusinessForm({ initial }: { initial?: Business }) {
         gstin: values.gstin.trim().toUpperCase() || undefined,
         pan: values.pan.trim().toUpperCase() || undefined,
         upiId: values.upiId.trim() || undefined,
+        showUpiQr: showUpiQr,
         additionalInfo: values.additionalInfo.trim() || undefined,
         logo: logo ?? undefined,
       });
@@ -140,13 +144,26 @@ export function BusinessForm({ initial }: { initial?: Business }) {
             maxLength={10}
           />
         </Field>
-        <Field label="UPI ID">
-          <Input
-            value={values.upiId}
-            onChange={(e) => setField("upiId", e.target.value)}
-            placeholder="Optional, e.g. name@okaxis"
-          />
-        </Field>
+        <div className="space-y-1.5">
+          <Field label="UPI ID">
+            <Input
+              value={values.upiId}
+              onChange={(e) => setField("upiId", e.target.value)}
+              placeholder="e.g. name@okhdfcbank"
+            />
+          </Field>
+          {values.upiId.trim() && (
+            <label className="flex items-center gap-2 pt-1 text-xs text-stone-600 dark:text-stone-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showUpiQr}
+                onChange={(e) => setShowUpiQr(e.target.checked)}
+                className="rounded border-stone-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span>Generate instant payment QR code on invoices</span>
+            </label>
+          )}
+        </div>
         <Field label="Additional business info" full>
           <Textarea
             value={values.additionalInfo}

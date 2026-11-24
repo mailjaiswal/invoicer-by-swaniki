@@ -3,8 +3,8 @@
  * no payment data ever leaves the device (spec §19).
  */
 
-/** Reasonable UPI ID format: handle@psp, e.g. name@oksbi. */
-export const UPI_ID_PATTERN = /^[\w.\-]{2,}@[a-zA-Z]{2,}$/;
+/** Reasonable UPI ID format: handle@psp, e.g. name@oksbi, +919876543210@paytm. */
+export const UPI_ID_PATTERN = /^[a-zA-Z0-9.\-_+]{2,}@[a-zA-Z0-9.\-_]{2,}$/;
 
 export function isValidUpiId(id?: string | null): boolean {
   return typeof id === "string" && UPI_ID_PATTERN.test(id.trim());

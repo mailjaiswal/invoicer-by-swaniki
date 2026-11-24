@@ -870,7 +870,7 @@ export function buildInvoiceDocDef(
                               },
                             ]
                           : []),
-                        ...(isFriendly && options?.upiQrDataUrl && !isQuotation && business?.upiId
+                        ...(options?.upiQrDataUrl && !isQuotation && business?.upiId
                           ? [
                               {
                                 stack: [
@@ -949,9 +949,10 @@ export async function buildUpiQrDataUrl(
   business?: Business,
 ): Promise<string | undefined> {
   const upiId = business?.upiId?.trim();
+  const showQr = business?.showUpiQr !== false;
   if (
     invoice.docType === "quotation" ||
-    !business?.showUpiQr ||
+    !showQr ||
     !upiId ||
     !isValidUpiId(upiId)
   )
@@ -961,7 +962,7 @@ export async function buildUpiQrDataUrl(
     : undefined;
   const url = buildUpiUrl({
     id: upiId,
-    name: business.name,
+    name: business?.name,
     amount: invoice.total,
     note,
   });
