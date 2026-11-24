@@ -264,6 +264,12 @@ export function buildInvoiceDocDef(
   const isNoir = template === "noir";
   const isCobalt = template === "cobalt";
   const isVelvet = template === "velvet";
+  const gradientFrom = settings?.headerGradientFrom?.trim()
+    ? pdfHex(settings.headerGradientFrom.trim())
+    : undefined;
+  const gradientTo = settings?.headerGradientTo?.trim()
+    ? pdfHex(settings.headerGradientTo.trim())
+    : undefined;
   const personality = settings?.personality ?? "professional";
   const isMinimalPersonality = personality === "minimal";
   const isFriendly = personality === "friendly";
@@ -425,7 +431,7 @@ export function buildInvoiceDocDef(
                 ? [
                     {
                       canvas: [
-                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: "#4338CA" },
+                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: gradientFrom ?? "#4338CA" },
                       ],
                       margin: margin(0, 0, 18),
                     },
@@ -434,7 +440,7 @@ export function buildInvoiceDocDef(
                 ? [
                     {
                       canvas: [
-                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 6, fillColor: "#002FA7" },
+                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 6, fillColor: gradientFrom ?? "#002FA7" },
                       ],
                       margin: margin(0, 0, 18),
                     },
@@ -443,7 +449,7 @@ export function buildInvoiceDocDef(
                 ? [
                     {
                       canvas: [
-                        { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 2, lineColor: "#D4AF37" },
+                        { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 2, lineColor: gradientTo ?? "#D4AF37" },
                       ],
                       margin: margin(0, 0, 18),
                     },
@@ -452,7 +458,7 @@ export function buildInvoiceDocDef(
                 ? [
                     {
                       canvas: [
-                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: "#1E40AF" },
+                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: gradientFrom ?? "#1E40AF" },
                       ],
                       margin: margin(0, 0, 18),
                     },
@@ -461,8 +467,8 @@ export function buildInvoiceDocDef(
                 ? [
                     {
                       canvas: [
-                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: "#064E3B" },
-                        { type: "line", x1: 0, y1: 5, x2: contentWidth, y2: 5, lineWidth: 1.5, lineColor: "#10B981" },
+                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: gradientFrom ?? "#064E3B" },
+                        { type: "line", x1: 0, y1: 5, x2: contentWidth, y2: 5, lineWidth: 1.5, lineColor: gradientTo ?? "#10B981" },
                       ],
                       margin: margin(0, 0, 18),
                     },

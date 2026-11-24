@@ -77,6 +77,16 @@ export function InvoiceDocument({
   const isCobalt   = template === "cobalt";
   const isVelvet   = template === "velvet";
 
+  const gradientFrom = settings?.headerGradientFrom?.trim();
+  const gradientTo = settings?.headerGradientTo?.trim();
+  const customGradient =
+    gradientFrom && gradientTo
+      ? `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`
+      : null;
+
+  const hideBadge = !!settings?.hideTemplateBadge;
+  const customBadgeText = settings?.templateBadgeText?.trim();
+
   /** Table header fill/text and band ink, mirroring the PDF engine (lib/pdf.ts). */
   const headerFill = headerTint ?? (isBold ? "#1c1917" : undefined);
   const headerText = headerTint ? (isBold ? "#ffffff" : accent) : undefined;
@@ -198,13 +208,18 @@ export function InvoiceDocument({
 
     if (isAura) {
       return (
-        <div className="rounded-2xl bg-gradient-to-br from-[#4338CA] via-[#6366F1] to-[#EC4899] p-6 sm:p-7 text-white shadow-md">
+        <div
+          className="rounded-2xl p-6 sm:p-7 text-white shadow-md"
+          style={{ background: customGradient ?? "linear-gradient(135deg, #4338CA 0%, #6366F1 50%, #EC4899 100%)" }}
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
               {logoPosition === "left" && logoMark}
-              <div className="inline-block rounded-full border border-white/30 bg-white/20 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
-                Studio Invoice
-              </div>
+              {!hideBadge && (
+                <div className="inline-block rounded-full border border-white/30 bg-white/20 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
+                  {customBadgeText || "Studio Invoice"}
+                </div>
+              )}
               <p className="pt-1 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
                 {business?.name?.trim() || "Your Business"}
               </p>
@@ -234,11 +249,22 @@ export function InvoiceDocument({
     if (isSwiss) {
       return (
         <div>
-          <div className="h-2 w-full bg-[#002FA7] mb-5" aria-hidden="true" />
+          <div
+            className="h-2 w-full mb-5"
+            style={{ backgroundColor: gradientFrom || "#002FA7" }}
+            aria-hidden="true"
+          />
           <div className="border-b-[3px] border-black pb-5">
             <div className="grid gap-6 sm:grid-cols-[1.5fr_1fr]">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#002FA7]">SYSTEM // 05</p>
+                {!hideBadge && (
+                  <p
+                    className="text-[10px] font-black uppercase tracking-[0.25em]"
+                    style={{ color: gradientFrom || "#002FA7" }}
+                  >
+                    {customBadgeText || "SYSTEM // 05"}
+                  </p>
+                )}
                 <p className="font-display text-4xl font-black uppercase tracking-tight text-black sm:text-5xl">
                   {docTitle}
                 </p>
@@ -271,13 +297,28 @@ export function InvoiceDocument({
 
     if (isNoir) {
       return (
-        <div className="rounded-xl bg-[#111113] p-6 sm:p-7 text-white border-b-[3px] border-[#D4AF37] shadow-md">
+        <div
+          className="rounded-xl p-6 sm:p-7 text-white border-b-[3px] shadow-md"
+          style={{
+            background: customGradient ?? "#111113",
+            borderColor: gradientTo || "#D4AF37",
+          }}
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
               {logoPosition === "left" && logoMark}
-              <div className="inline-block rounded border border-[#D4AF37]/50 bg-[#D4AF37]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">
-                Private Advisory
-              </div>
+              {!hideBadge && (
+                <div
+                  className="inline-block rounded border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em]"
+                  style={{
+                    borderColor: `${gradientTo || "#D4AF37"}80`,
+                    backgroundColor: `${gradientTo || "#D4AF37"}1A`,
+                    color: gradientTo || "#D4AF37",
+                  }}
+                >
+                  {customBadgeText || "Private Advisory"}
+                </div>
+              )}
               <p className="pt-1 font-display text-2xl font-bold tracking-tight text-white">
                 {business?.name?.trim() || "Your Business"}
               </p>
@@ -291,7 +332,7 @@ export function InvoiceDocument({
               </div>
             </div>
             <div className="text-left sm:text-right">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D4AF37]">{docTitle}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: gradientTo || "#D4AF37" }}>{docTitle}</p>
               <p className="text-xl font-bold text-white">{number || "Preview"}</p>
               <div className="mt-2 space-y-1 text-xs text-zinc-400">
                 <p>Issued: <span className="font-medium text-zinc-200">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span></p>
@@ -307,10 +348,15 @@ export function InvoiceDocument({
     if (isCobalt) {
       return (
         <div className="grid gap-4 sm:grid-cols-[1.8fr_1fr]">
-          <div className="rounded-2xl bg-gradient-to-br from-[#1E40AF] to-[#3B82F6] p-6 text-white shadow-md">
-            <span className="inline-block rounded-full bg-white/20 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-              Official Invoice
-            </span>
+          <div
+            className="rounded-2xl p-6 text-white shadow-md"
+            style={{ background: customGradient ?? "linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)" }}
+          >
+            {!hideBadge && (
+              <span className="inline-block rounded-full bg-white/20 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                {customBadgeText || "Official Invoice"}
+              </span>
+            )}
             <p className="pt-2 font-display text-2xl font-black tracking-tight text-white">
               {business?.name?.trim() || "Your Business"}
             </p>
@@ -338,12 +384,20 @@ export function InvoiceDocument({
 
     if (isVelvet) {
       return (
-        <div className="rounded-xl bg-[#064E3B] p-6 sm:p-7 text-[#ECFDF5] border-b-[3px] border-[#10B981] shadow-md">
+        <div
+          className="rounded-xl p-6 sm:p-7 text-[#ECFDF5] border-b-[3px] shadow-md"
+          style={{
+            background: customGradient ?? "#064E3B",
+            borderColor: gradientTo || "#10B981",
+          }}
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
-              <span className="inline-block rounded-full bg-white/15 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#A7F3D0]">
-                Sustainable Enterprise
-              </span>
+              {!hideBadge && (
+                <span className="inline-block rounded-full bg-white/15 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#A7F3D0]">
+                  {customBadgeText || "Sustainable Enterprise"}
+                </span>
+              )}
               <p className="pt-2 font-display text-2xl font-bold tracking-tight text-white">
                 {business?.name?.trim() || "Your Business"}
               </p>

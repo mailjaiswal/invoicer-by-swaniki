@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MonitorCog, Palette, LayoutTemplate, Image as ImageIcon, Banknote, Type, FileSliders, Tags, FileText } from "lucide-react";
+import {
+  MonitorCog,
+  Palette,
+  LayoutTemplate,
+  Image as ImageIcon,
+  Banknote,
+  Type,
+  FileSliders,
+  Tags,
+  FileText,
+  Sparkles,
+} from "lucide-react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import {
   Card,
@@ -28,6 +39,7 @@ import {
   INVOICE_PERSONALITIES,
   INVOICE_TEMPLATES,
   LOGO_POSITIONS,
+  GRADIENT_PRESETS,
   type CurrencyCode,
   type DocFontId,
 } from "@/lib/constants";
@@ -197,6 +209,38 @@ export function AppearanceSection() {
         .catch(() => showToast("Couldn't save the default terms.", "error"))
   );
 
+  const badgeText = useLocalText(
+    settings?.templateBadgeText ?? "",
+    (val) =>
+      updateSettings({ templateBadgeText: val })
+        .then(() => showToast("Badge text saved.", "success"))
+        .catch(() => showToast("Couldn't save badge text.", "error"))
+  );
+
+  const toggleHideBadge = (hide: boolean) => {
+    updateSettings({ hideTemplateBadge: hide })
+      .then(() => showToast(hide ? "Header badge hidden." : "Header badge visible.", "success"))
+      .catch(() => showToast("Couldn't update badge visibility.", "error"));
+  };
+
+  const setGradientPreset = (from: string, to: string) => {
+    updateSettings({
+      headerGradientFrom: from,
+      headerGradientTo: to,
+    })
+      .then(() => showToast("Header gradient updated.", "success"))
+      .catch(() => showToast("Couldn't save gradient.", "error"));
+  };
+
+  const clearGradient = () => {
+    updateSettings({
+      headerGradientFrom: "",
+      headerGradientTo: "",
+    })
+      .then(() => showToast("Reset to template default colors.", "success"))
+      .catch(() => showToast("Couldn't reset gradient.", "error"));
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -282,6 +326,178 @@ export function AppearanceSection() {
         business={business}
         settings={settings}
       />
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+              Template Styling &amp; Customization
+            </CardTitle>
+            {(settings?.headerGradientFrom || settings?.templateBadgeText || settings?.hideTemplateBadge) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  updateSettings({
+                    headerGradientFrom: "",
+                    headerGradientTo: "",
+                    templateBadgeText: "",
+                    hideTemplateBadge: false,
+                  }).then(() => showToast("Reset template styling to default.", "success"));
+                }}
+                className="text-xs text-stone-500 hover:text-stone-800 dark:text-stone-400"
+              >
+                Reset to Default
+              </Button>
+            )}
+          </div>
+          <CardDescription>
+            Customize the header colors, gradients, and badge text across modern, velvet, aura, cobalt, and banner templates.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Badge text & visibility */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="badge-text" className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300">
+                Header Badge / Subtitle Text
+              </Label>
+              <label className="flex items-center gap-2 text-xs cursor-pointer text-stone-500 hover:text-stone-700 dark:text-stone-400">
+                <input
+                  type="checkbox"
+                  checked={settings?.hideTemplateBadge ?? false}
+                  onChange={(e) => toggleHideBadge(e.target.checked)}
+                  className="rounded border-stone-300 text-brand-600 focus:ring-brand-500"
+                />
+                <span>Hide badge completely</span>
+              </label>
+            </div>
+            <Input
+              id="badge-text"
+              value={badgeText.value}
+              onChange={(e) => badgeText.onChange(e.target.value)}
+              onBlur={badgeText.flush}
+              disabled={settings?.hideTemplateBadge}
+              placeholder="e.g. Swaniki Studio, Verified Engineering, Consulting Partner (leave blank for default)"
+              className="text-sm"
+            />
+            <p className="text-[11px] text-stone-400 dark:text-stone-500">
+              Replaces default template text like &quot;Sustainable Enterprise&quot; or &quot;Studio Invoice&quot;.
+            </p>
+          </div>
+
+          {/* Header Gradients */}
+          <div className="space-y-3 pt-2 border-t border-stone-100 dark:border-stone-800">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300">
+                Header Gradient (Velvet, Aura, Cobalt, Solarpunk, Modern)
+              </Label>
+              {settings?.headerGradientFrom && settings?.headerGradientTo && (
+                <button
+                  type="button"
+                  onClick={clearGradient}
+                  className="text-xs text-brand-600 hover:underline dark:text-brand-400"
+                >
+                  Use Template Default
+                </button>
+              )}
+            </div>
+
+            {/* Presets */}
+            <div className="flex flex-wrap gap-2">
+              {GRADIENT_PRESETS.map((preset) => {
+                const isActive =
+                  settings?.headerGradientFrom?.toLowerCase() === preset.from.toLowerCase() &&
+                  settings?.headerGradientTo?.toLowerCase() === preset.to.toLowerCase();
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setGradientPreset(preset.from, preset.to)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium transition-all",
+                      isActive
+                        ? "border-brand-600 bg-brand-50/60 ring-2 ring-brand-600/30 text-brand-900 dark:bg-brand-950/60 dark:text-brand-200"
+                        : "border-stone-200 bg-white hover:border-stone-300 text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200"
+                    )}
+                  >
+                    <span
+                      className="h-3.5 w-3.5 rounded-full shadow-inner"
+                      style={{
+                        background: `linear-gradient(135deg, ${preset.from} 0%, ${preset.to} 100%)`,
+                      }}
+                    />
+                    <span>{preset.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Gradient picker */}
+            <div className="flex flex-wrap items-center gap-4 rounded-xl border border-stone-200 bg-stone-50/50 p-3 dark:border-stone-800 dark:bg-stone-900/40">
+              <span className="text-xs font-medium text-stone-600 dark:text-stone-400">Custom Gradient:</span>
+              <label className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400">
+                <span>From</span>
+                <span className="relative inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg ring-1 ring-stone-300 dark:ring-stone-600">
+                  <Input
+                    type="color"
+                    value={settings?.headerGradientFrom || "#7C3AED"}
+                    onChange={(e) =>
+                      updateSettings({
+                        headerGradientFrom: e.target.value,
+                        headerGradientTo: settings?.headerGradientTo || "#10B981",
+                      })
+                    }
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    aria-label="Gradient start color"
+                  />
+                  <span
+                    className="h-full w-full"
+                    style={{ backgroundColor: settings?.headerGradientFrom || "#7C3AED" }}
+                  />
+                </span>
+                <span className="font-mono text-[11px] text-stone-500">
+                  {settings?.headerGradientFrom || "#7C3AED"}
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400">
+                <span>To</span>
+                <span className="relative inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg ring-1 ring-stone-300 dark:ring-stone-600">
+                  <Input
+                    type="color"
+                    value={settings?.headerGradientTo || "#10B981"}
+                    onChange={(e) =>
+                      updateSettings({
+                        headerGradientFrom: settings?.headerGradientFrom || "#7C3AED",
+                        headerGradientTo: e.target.value,
+                      })
+                    }
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    aria-label="Gradient end color"
+                  />
+                  <span
+                    className="h-full w-full"
+                    style={{ backgroundColor: settings?.headerGradientTo || "#10B981" }}
+                  />
+                </span>
+                <span className="font-mono text-[11px] text-stone-500">
+                  {settings?.headerGradientTo || "#10B981"}
+                </span>
+              </label>
+
+              {/* Preview strip */}
+              <div
+                className="h-7 min-w-[80px] flex-1 rounded-lg border border-black/10 shadow-inner"
+                style={{
+                  background: `linear-gradient(135deg, ${settings?.headerGradientFrom || "#7C3AED"} 0%, ${settings?.headerGradientTo || "#10B981"} 100%)`,
+                }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

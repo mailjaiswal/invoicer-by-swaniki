@@ -80,7 +80,27 @@ export const DEFAULT_SETTINGS = {
   pageOrientation: "portrait",
   notesLabel: "Notes",
   termsLabel: "Terms",
+  headerGradientFrom: "",
+  headerGradientTo: "",
+  templateBadgeText: "",
+  hideTemplateBadge: false,
 } as const;
+
+export interface GradientPreset {
+  id: string;
+  label: string;
+  from: string;
+  to: string;
+}
+
+export const GRADIENT_PRESETS: GradientPreset[] = [
+  { id: "swaniki", label: "Swaniki (Purple → Green)", from: "#7C3AED", to: "#10B981" },
+  { id: "aura", label: "Aura (Indigo → Pink)", from: "#4338CA", to: "#EC4899" },
+  { id: "cobalt", label: "Cobalt (Navy → Sky)", from: "#1E40AF", to: "#3B82F6" },
+  { id: "sunset", label: "Sunset (Coral → Rose)", from: "#E06C53", to: "#B83B5E" },
+  { id: "forest", label: "Forest (Evergreen → Mint)", from: "#064E3B", to: "#10B981" },
+  { id: "noir", label: "Executive (Charcoal → Gold)", from: "#111113", to: "#D4AF37" },
+];
 
 /** Invoice layouts the document engine can render (spec §16). */
 export const INVOICE_TEMPLATES = [

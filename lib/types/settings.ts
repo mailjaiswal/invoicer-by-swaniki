@@ -43,6 +43,10 @@ export interface AppSettings {
   defaultPaymentTermsDays: number;
   theme: ThemeMode;
   accentColor: string;
+  headerGradientFrom?: string;
+  headerGradientTo?: string;
+  templateBadgeText?: string;
+  hideTemplateBadge?: boolean;
   personality?: InvoicePersonality;
   docFont?: DocFontId;
   pageOrientation?: PageOrientation;
