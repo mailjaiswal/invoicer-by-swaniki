@@ -5,7 +5,7 @@
    next reload. Static hashed chunks are cache-first. While offline the shell
    cache keeps the app fully usable. Bump VERSION to force a fresh shell. */
 
-const VERSION = "v1.0.0-m16c";
+const VERSION = "v1.0.0-m17";
 const CACHE = `invoicer-swaniki-${VERSION}`;
 
 const SHELL = [
