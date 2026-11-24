@@ -11,7 +11,11 @@ import {
   CardTitle,
 } from "@/components/common/card";
 import { Select } from "@/components/common/select";
-import { TemplatePreviewCard } from "@/components/settings/template-preview";
+import {
+  TemplatePreviewCard,
+  TemplatePreviewModal,
+} from "@/components/settings/template-preview";
+import { Button } from "@/components/common/button";
 import { Input } from "@/components/common/input";
 import { Label } from "@/components/common/label";
 import { Textarea } from "@/components/common/textarea";
@@ -100,6 +104,10 @@ export function AppearanceSection() {
   const logoPosition = business?.logoPosition || "left";
   const currency = settings?.currency ?? "INR";
   const docFont = settings?.docFont ?? "roboto";
+
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewModalTemplateId, setPreviewModalTemplateId] =
+    useState<InvoiceTemplateId>(template);
 
   const setTemplate = (value: string) => {
     const id = value as InvoiceTemplateId;
@@ -212,14 +220,30 @@ export function AppearanceSection() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LayoutTemplate className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
-            Invoice template
-          </CardTitle>
-          <CardDescription>
-            The layout used for new invoices. Previews update live with your
-            name, logo, colours and font.
-          </CardDescription>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <LayoutTemplate className="h-4 w-4 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+                Invoice template
+              </CardTitle>
+              <CardDescription>
+                The layout used for new invoices. Previews update live with your
+                name, logo, colours and font.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPreviewModalTemplateId(template);
+                setPreviewModalOpen(true);
+              }}
+              className="self-start sm:self-auto gap-1.5 text-xs font-semibold"
+            >
+              <LayoutTemplate className="h-3.5 w-3.5" />
+              <span>Full-Page Gallery</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -233,15 +257,31 @@ export function AppearanceSection() {
                 business={business}
                 settings={settings}
                 onSelect={setTemplate}
+                onPreview={(id) => {
+                  setPreviewModalTemplateId(id);
+                  setPreviewModalOpen(true);
+                }}
               />
             ))}
           </div>
           <p className="mt-3 text-xs text-stone-400 dark:text-stone-500">
-            Choose the look you want — you can still switch to another template
-            on any invoice before generating it.
+            Choose the look you want — click any template to open a large, scrollable full-page preview.
           </p>
         </CardContent>
       </Card>
+
+      <TemplatePreviewModal
+        open={previewModalOpen}
+        onClose={() => setPreviewModalOpen(false)}
+        initialTemplateId={previewModalTemplateId}
+        currentTemplateId={template}
+        onSelect={(id) => {
+          setTemplate(id);
+          setPreviewModalOpen(false);
+        }}
+        business={business}
+        settings={settings}
+      />
 
       <Card>
         <CardHeader>

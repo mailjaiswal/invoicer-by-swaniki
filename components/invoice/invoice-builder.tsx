@@ -11,6 +11,7 @@ import {
   NotebookPen,
   Save,
   FileText,
+  LayoutTemplate,
 } from "lucide-react";
 import { useApp, useAppCurrency, useToast } from "@/lib/providers";
 import { getSettings } from "@/lib/db/database";
@@ -46,6 +47,9 @@ import { FullPagePreview } from "./page-frame";
 import { CustomerSection } from "./customer-section";
 import { ItemsEditor } from "./items-editor";
 import { BuilderTotals } from "./builder-totals";
+import { TemplatePreviewModal } from "@/components/settings/template-preview";
+import { INVOICE_TEMPLATES } from "@/lib/constants";
+import type { InvoiceTemplateId } from "@/lib/types";
 import {
   clearDraft,
   draftKeyFor,
@@ -71,7 +75,8 @@ export function InvoiceBuilder({
   editId,
 }: InvoiceBuilderProps) {
   const router = useRouter();
-  const { business, settings } = useApp();
+  const { business, settings, updateSettings } = useApp();
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const currency = useAppCurrency();
   const { showToast } = useToast();
   const isQuotation = docType === "quotation";
@@ -789,6 +794,24 @@ export function InvoiceBuilder({
           )}
         >
           <BuilderTotals calc={calc} currency={currency} />
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-semibold text-stone-500">Document Layout</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setTemplateModalOpen(true)}
+              className="h-7 gap-1.5 text-xs text-stone-700 dark:text-stone-300"
+            >
+              <LayoutTemplate className="h-3.5 w-3.5 text-brand-600" />
+              <span>
+                Template:{" "}
+                <strong className="font-semibold text-stone-900 dark:text-white">
+                  {INVOICE_TEMPLATES.find((t) => t.id === (settings?.defaultTemplate ?? "modern"))?.label ?? "Modern"}
+                </strong>
+              </span>
+            </Button>
+          </div>
         <FullPagePreview
           landscape={
             (settings?.pageOrientation ?? "portrait") === "landscape"
@@ -885,6 +908,21 @@ export function InvoiceBuilder({
           </div>
         </section>
       </div>
+
+      <TemplatePreviewModal
+        open={templateModalOpen}
+        onClose={() => setTemplateModalOpen(false)}
+        initialTemplateId={(settings?.defaultTemplate ?? "modern") as InvoiceTemplateId}
+        currentTemplateId={(settings?.defaultTemplate ?? "modern") as InvoiceTemplateId}
+        onSelect={(id) => {
+          updateSettings({ defaultTemplate: id })
+            .then(() => showToast("Invoice template updated.", "success"))
+            .catch(() => showToast("Couldn't update template.", "error"));
+          setTemplateModalOpen(false);
+        }}
+        business={business}
+        settings={settings}
+      />
     </div>
   );
 }

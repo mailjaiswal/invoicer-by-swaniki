@@ -149,6 +149,31 @@ export const INVOICE_TEMPLATES = [
     label: "Solarpunk",
     blurb: "Clean energy eco-fintech with radiant amber and solar emerald accents.",
   },
+  {
+    id: "aura",
+    label: "Fintech Aura",
+    blurb: "Iridescent violet-pink gradient mesh header with frosted cards.",
+  },
+  {
+    id: "swiss",
+    label: "Swiss International",
+    blurb: "Josef Müller-Brockmann modernist grid with International Klein Blue.",
+  },
+  {
+    id: "noir",
+    label: "Executive Noir",
+    blurb: "Velvet charcoal header with champagne gold accents and private advisory elegance.",
+  },
+  {
+    id: "cobalt",
+    label: "Cobalt Bento",
+    blurb: "Electric cobalt hero bento with azure accents and clean modular structure.",
+  },
+  {
+    id: "velvet",
+    label: "Velvet Forest",
+    blurb: "Deep evergreen header with emerald accents and sustainable luxury parchment.",
+  },
 ] as const;
 
 export type InvoiceTemplateId = (typeof INVOICE_TEMPLATES)[number]["id"];

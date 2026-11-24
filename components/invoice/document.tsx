@@ -71,6 +71,11 @@ export function InvoiceDocument({
   const isBotanical= template === "botanical";
   const isCouture  = template === "couture";
   const isSolarpunk= template === "solarpunk";
+  const isAura     = template === "aura";
+  const isSwiss    = template === "swiss";
+  const isNoir     = template === "noir";
+  const isCobalt   = template === "cobalt";
+  const isVelvet   = template === "velvet";
 
   /** Table header fill/text and band ink, mirroring the PDF engine (lib/pdf.ts). */
   const headerFill = headerTint ?? (isBold ? "#1c1917" : undefined);
@@ -186,6 +191,180 @@ export function InvoiceDocument({
               ) : "—"}
             </span>
             {status && !isQuotation && <StatusBadge status={status} />}
+          </div>
+        </div>
+      );
+    }
+
+    if (isAura) {
+      return (
+        <div className="rounded-2xl bg-gradient-to-br from-[#4338CA] via-[#6366F1] to-[#EC4899] p-6 sm:p-7 text-white shadow-md">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              {logoPosition === "left" && logoMark}
+              <div className="inline-block rounded-full border border-white/30 bg-white/20 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
+                Studio Invoice
+              </div>
+              <p className="pt-1 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+                {business?.name?.trim() || "Your Business"}
+              </p>
+              {!!business?.address?.trim() && (
+                <p className="whitespace-pre-line text-xs leading-relaxed text-white/85">{business.address}</p>
+              )}
+              <div className="pt-1 text-xs text-white/80">
+                {!!business?.email?.trim() && <p>{business.email}</p>}
+                {!!business?.phone?.trim() && <p>{business.phone}</p>}
+                {!!business?.gstin?.trim() && <p>GSTIN: <span className="uppercase font-mono">{business.gstin}</span></p>}
+              </div>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-xs font-bold uppercase tracking-widest text-white/80">{docTitle}</p>
+              <p className="text-xl font-black text-white">{number || "Preview"}</p>
+              <div className="mt-2 space-y-1 text-xs text-white/90">
+                <p>Issued: <span className="font-semibold text-white">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span></p>
+                <p>{isQuotation ? "Valid until" : "Due"}: <span className="font-semibold text-white">{(isQuotation ? invoice.validityDate : invoice.dueDate) ? formatIso((isQuotation ? invoice.validityDate : invoice.dueDate) ?? "") : "—"}</span></p>
+              </div>
+              {status && !isQuotation && <div className="pt-2 sm:flex sm:justify-end"><StatusBadge status={status} /></div>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (isSwiss) {
+      return (
+        <div>
+          <div className="h-2 w-full bg-[#002FA7] mb-5" aria-hidden="true" />
+          <div className="border-b-[3px] border-black pb-5">
+            <div className="grid gap-6 sm:grid-cols-[1.5fr_1fr]">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#002FA7]">SYSTEM // 05</p>
+                <p className="font-display text-4xl font-black uppercase tracking-tight text-black sm:text-5xl">
+                  {docTitle}
+                </p>
+                <p className="mt-1 font-mono text-base font-bold text-black">{number || "Preview"}</p>
+              </div>
+              <div className="space-y-1 text-left sm:text-right">
+                {logoPosition === "left" && logoMark}
+                <p className="text-lg font-black uppercase tracking-tight text-black">
+                  {business?.name?.trim() || "Your Business"}
+                </p>
+                {!!business?.address?.trim() && (
+                  <p className="whitespace-pre-line text-xs leading-relaxed text-stone-600">{business.address}</p>
+                )}
+                <div className="pt-1 text-xs text-stone-600">
+                  {!!business?.email?.trim() && <p>{business.email}</p>}
+                  {!!business?.phone?.trim() && <p>{business.phone}</p>}
+                  {!!business?.gstin?.trim() && <p className="font-mono">GSTIN: {business.gstin.toUpperCase()}</p>}
+                </div>
+                <div className="mt-2 text-xs text-stone-700">
+                  <p>Issued: <span className="font-bold text-black">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span></p>
+                  <p>{isQuotation ? "Valid until" : "Due"}: <span className="font-bold text-black">{(isQuotation ? invoice.validityDate : invoice.dueDate) ? formatIso((isQuotation ? invoice.validityDate : invoice.dueDate) ?? "") : "—"}</span></p>
+                </div>
+                {status && !isQuotation && <div className="pt-2 sm:flex sm:justify-end"><StatusBadge status={status} /></div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (isNoir) {
+      return (
+        <div className="rounded-xl bg-[#111113] p-6 sm:p-7 text-white border-b-[3px] border-[#D4AF37] shadow-md">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              {logoPosition === "left" && logoMark}
+              <div className="inline-block rounded border border-[#D4AF37]/50 bg-[#D4AF37]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">
+                Private Advisory
+              </div>
+              <p className="pt-1 font-display text-2xl font-bold tracking-tight text-white">
+                {business?.name?.trim() || "Your Business"}
+              </p>
+              {!!business?.address?.trim() && (
+                <p className="whitespace-pre-line text-xs leading-relaxed text-zinc-400">{business.address}</p>
+              )}
+              <div className="pt-1 text-xs text-zinc-400">
+                {!!business?.email?.trim() && <p>{business.email}</p>}
+                {!!business?.phone?.trim() && <p>{business.phone}</p>}
+                {!!business?.gstin?.trim() && <p>GSTIN: <span className="uppercase text-zinc-300 font-mono">{business.gstin}</span></p>}
+              </div>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D4AF37]">{docTitle}</p>
+              <p className="text-xl font-bold text-white">{number || "Preview"}</p>
+              <div className="mt-2 space-y-1 text-xs text-zinc-400">
+                <p>Issued: <span className="font-medium text-zinc-200">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span></p>
+                <p>{isQuotation ? "Valid until" : "Due"}: <span className="font-medium text-zinc-200">{(isQuotation ? invoice.validityDate : invoice.dueDate) ? formatIso((isQuotation ? invoice.validityDate : invoice.dueDate) ?? "") : "—"}</span></p>
+              </div>
+              {status && !isQuotation && <div className="pt-2 sm:flex sm:justify-end"><StatusBadge status={status} /></div>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (isCobalt) {
+      return (
+        <div className="grid gap-4 sm:grid-cols-[1.8fr_1fr]">
+          <div className="rounded-2xl bg-gradient-to-br from-[#1E40AF] to-[#3B82F6] p-6 text-white shadow-md">
+            <span className="inline-block rounded-full bg-white/20 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+              Official Invoice
+            </span>
+            <p className="pt-2 font-display text-2xl font-black tracking-tight text-white">
+              {business?.name?.trim() || "Your Business"}
+            </p>
+            {!!business?.address?.trim() && (
+              <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-white/85">{business.address}</p>
+            )}
+            <div className="pt-1 text-xs text-white/85">
+              {!!business?.email?.trim() && <p>{business.email}</p>}
+              {!!business?.phone?.trim() && <p>{business.phone}</p>}
+              {!!business?.gstin?.trim() && <p>GSTIN: <span className="uppercase font-mono">{business.gstin}</span></p>}
+            </div>
+          </div>
+          <div className="flex flex-col justify-center rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{docTitle}</p>
+            <p className="text-lg font-bold text-slate-900">{number || "Preview"}</p>
+            <div className="mt-2 space-y-1 text-xs text-slate-600">
+              <p>Issued: <span className="font-medium text-slate-900">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span></p>
+              <p>{isQuotation ? "Valid until" : "Due"}: <span className="font-medium text-slate-900">{(isQuotation ? invoice.validityDate : invoice.dueDate) ? formatIso((isQuotation ? invoice.validityDate : invoice.dueDate) ?? "") : "—"}</span></p>
+            </div>
+            {status && !isQuotation && <div className="pt-2"><StatusBadge status={status} /></div>}
+          </div>
+        </div>
+      );
+    }
+
+    if (isVelvet) {
+      return (
+        <div className="rounded-xl bg-[#064E3B] p-6 sm:p-7 text-[#ECFDF5] border-b-[3px] border-[#10B981] shadow-md">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <span className="inline-block rounded-full bg-white/15 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#A7F3D0]">
+                Sustainable Enterprise
+              </span>
+              <p className="pt-2 font-display text-2xl font-bold tracking-tight text-white">
+                {business?.name?.trim() || "Your Business"}
+              </p>
+              {!!business?.address?.trim() && (
+                <p className="whitespace-pre-line text-xs leading-relaxed text-emerald-100/80">{business.address}</p>
+              )}
+              <div className="pt-1 text-xs text-emerald-100/80">
+                {!!business?.email?.trim() && <p>{business.email}</p>}
+                {!!business?.phone?.trim() && <p>{business.phone}</p>}
+                {!!business?.gstin?.trim() && <p>GSTIN: <span className="uppercase font-mono">{business.gstin}</span></p>}
+              </div>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#A7F3D0]">{docTitle}</p>
+              <p className="text-xl font-bold text-white">{number || "Preview"}</p>
+              <div className="mt-2 space-y-1 text-xs text-emerald-100/90">
+                <p>Issued: <span className="font-medium text-white">{invoice.invoiceDate ? formatIso(invoice.invoiceDate) : "—"}</span></p>
+                <p>{isQuotation ? "Valid until" : "Due"}: <span className="font-medium text-white">{(isQuotation ? invoice.validityDate : invoice.dueDate) ? formatIso((isQuotation ? invoice.validityDate : invoice.dueDate) ?? "") : "—"}</span></p>
+              </div>
+              {status && !isQuotation && <div className="pt-2 sm:flex sm:justify-end"><StatusBadge status={status} /></div>}
+            </div>
           </div>
         </div>
       );
@@ -342,6 +521,41 @@ export function InvoiceDocument({
         </div>
       );
     }
+    if (isAura) {
+      return (
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 shadow-sm">
+          {content}
+        </div>
+      );
+    }
+    if (isSwiss) {
+      return (
+        <div className="border-2 border-black p-4">
+          {content}
+        </div>
+      );
+    }
+    if (isNoir) {
+      return (
+        <div className="rounded-xl border border-stone-200 border-l-4 border-l-[#D4AF37] bg-stone-50 p-4">
+          {content}
+        </div>
+      );
+    }
+    if (isCobalt) {
+      return (
+        <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
+          {content}
+        </div>
+      );
+    }
+    if (isVelvet) {
+      return (
+        <div className="rounded-xl border border-emerald-200 bg-white/90 p-4">
+          {content}
+        </div>
+      );
+    }
     if (isMinimal) {
       return <div className="border-t border-stone-200 pt-3">{content}</div>;
     }
@@ -359,17 +573,24 @@ export function InvoiceDocument({
 
   const thRowCls = isBold
     ? "text-white border-stone-800"
-    : isElegant
-      ? "border-stone-300"
-      : isMinimal
-        ? "border-stone-200"
-        : isCompact ? "border-stone-300" : "border-stone-200";
+    : isSwiss
+      ? "border-y-2 border-black text-black"
+      : isCobalt
+        ? "border-y border-blue-200"
+        : isElegant
+          ? "border-stone-300"
+          : isMinimal
+            ? "border-stone-200"
+            : isCompact ? "border-stone-300" : "border-stone-200";
 
   const thCellCls = cn(
     "py-2 font-semibold",
-    isBold ? "text-white" : "text-[11px] font-semibold uppercase tracking-wider text-stone-400",
+    isBold ? "text-white" : isSwiss ? "text-black font-extrabold uppercase tracking-wider text-[11px]" : "text-[11px] font-semibold uppercase tracking-wider text-stone-400",
     isElegant ? "text-[11px] uppercase tracking-[0.18em] text-stone-500" : "",
-    isMinimal ? "text-[11px] uppercase tracking-wider text-stone-400" : ""
+    isMinimal ? "text-[11px] uppercase tracking-wider text-stone-400" : "",
+    isCobalt ? "text-[#1D4ED8]" : "",
+    isVelvet ? "text-[#064E3B]" : "",
+    isNoir ? "text-zinc-800" : ""
   );
 
   /* ── Render ──────────────────────────────────────────────────────────── */
@@ -408,7 +629,17 @@ export function InvoiceDocument({
                         ? { borderTop: "4px solid #000000" }
                         : isSolarpunk
                           ? { borderTop: "4px solid #059669" }
-                          : isMinimal
+                          : isAura
+                            ? { borderTop: "4px solid #4338CA" }
+                            : isSwiss
+                              ? { borderTop: "none" }
+                              : isNoir
+                                ? { borderTop: "none" }
+                                : isCobalt
+                                  ? { borderTop: "4px solid #1E40AF" }
+                                  : isVelvet
+                                    ? { borderTop: "none", backgroundColor: "#F7FAF8" }
+                                    : isMinimal
                     ? { borderTop: "1px solid #d6d3d1" }
                     : {}),
         }}

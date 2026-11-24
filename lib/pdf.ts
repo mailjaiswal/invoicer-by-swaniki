@@ -259,6 +259,11 @@ export function buildInvoiceDocDef(
   const isBotanical = template === "botanical";
   const isCouture = template === "couture";
   const isSolarpunk = template === "solarpunk";
+  const isAura = template === "aura";
+  const isSwiss = template === "swiss";
+  const isNoir = template === "noir";
+  const isCobalt = template === "cobalt";
+  const isVelvet = template === "velvet";
   const personality = settings?.personality ?? "professional";
   const isMinimalPersonality = personality === "minimal";
   const isFriendly = personality === "friendly";
@@ -412,6 +417,52 @@ export function buildInvoiceDocDef(
                     {
                       canvas: [
                         { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 1.5, lineColor: brand },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
+              : isAura
+                ? [
+                    {
+                      canvas: [
+                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: "#4338CA" },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
+              : isSwiss
+                ? [
+                    {
+                      canvas: [
+                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 6, fillColor: "#002FA7" },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
+              : isNoir
+                ? [
+                    {
+                      canvas: [
+                        { type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 2, lineColor: "#D4AF37" },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
+              : isCobalt
+                ? [
+                    {
+                      canvas: [
+                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: "#1E40AF" },
+                      ],
+                      margin: margin(0, 0, 18),
+                    },
+                  ]
+              : isVelvet
+                ? [
+                    {
+                      canvas: [
+                        { type: "rect", x: 0, y: 0, w: contentWidth, h: 4, fillColor: "#064E3B" },
+                        { type: "line", x1: 0, y1: 5, x2: contentWidth, y2: 5, lineWidth: 1.5, lineColor: "#10B981" },
                       ],
                       margin: margin(0, 0, 18),
                     },

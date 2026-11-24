@@ -36,6 +36,11 @@ export const TEMPLATE_PALETTES: TemplatePalettes = {
   botanical: { accent: "1e3024", headerTint: "e2ebe4" },
   couture: { accent: "000000", headerTint: "f4f4f5" },
   solarpunk: { accent: "059669", headerTint: "d1fae5" },
+  aura: { accent: "4338ca", headerTint: "f1f5f9" },
+  swiss: { accent: "002fa7", headerTint: "ffffff" },
+  noir: { accent: "d4af37", headerTint: "f4f4f5" },
+  cobalt: { accent: "1e40af", headerTint: "eff6ff" },
+  velvet: { accent: "064e3b", headerTint: "e6f4ea" },
 } as const;
 
 /** Fallback used when a template id is unknown or no palette exists. */

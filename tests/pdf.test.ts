@@ -415,6 +415,11 @@ describe("pdfmake document definitions", () => {
     "botanical",
     "couture",
     "solarpunk",
+    "aura",
+    "swiss",
+    "noir",
+    "cobalt",
+    "velvet",
   ];
 
   for (const template of TEMPLATES) {
