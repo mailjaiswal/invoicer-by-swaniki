@@ -13,6 +13,7 @@ import {
   FilePlus2,
   Loader2,
   MessageCircle,
+  Pencil,
   Printer,
   QrCode,
   Share2,
@@ -25,6 +26,7 @@ import {
   getInvoice,
   markInvoicePaid,
   recordPayment,
+  renameInvoice,
   setInvoiceCustomer,
 } from "@/lib/db/invoices";
 import { upsertCustomer } from "@/lib/db/records";
@@ -112,6 +114,10 @@ function InvoiceView() {
     () => searchParams.get("reminder") === "1"
   );
   const [qrSheetOpen, setQrSheetOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState("");
 
   const status = useMemo(
     () => (invoice ? deriveInvoiceStatus(invoice) : undefined),
@@ -242,6 +248,29 @@ function InvoiceView() {
     }
   };
 
+  const handleRename = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!invoice) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed) {
+      setRenameError("Please enter a name or number.");
+      return;
+    }
+    setRenaming(true);
+    setRenameError("");
+    try {
+      await renameInvoice(invoice.id, trimmed);
+      showToast(`${isQuotation ? "Quotation" : "Invoice"} renamed to ${trimmed}.`);
+      setRenameOpen(false);
+    } catch (error) {
+      setRenameError(
+        error instanceof Error ? error.message : "Couldn't rename the document."
+      );
+    } finally {
+      setRenaming(false);
+    }
+  };
+
   const handleSaveCustomer = async () => {
     setBusy("save");
     try {
@@ -352,10 +381,23 @@ function InvoiceView() {
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <h1 className="truncate font-display text-2xl font-bold tracking-tight text-stone-950 dark:text-white">
               {invoice.invoiceNumber}
             </h1>
+            <button
+              type="button"
+              onClick={() => {
+                setRenameValue(invoice.invoiceNumber);
+                setRenameError("");
+                setRenameOpen(true);
+              }}
+              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+              title={`Rename ${isQuotation ? "quotation" : "invoice"}`}
+              aria-label={`Rename ${invoice.invoiceNumber}`}
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+            </button>
             {status && !isQuotation && <StatusBadge status={status} />}
           </div>
           <p className="mt-0.5 truncate text-sm text-stone-500 dark:text-stone-400">
@@ -367,6 +409,18 @@ function InvoiceView() {
           </p>
         </div>
         <div className="flex w-full gap-2 sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setRenameValue(invoice.invoiceNumber);
+              setRenameError("");
+              setRenameOpen(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+            Rename
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -809,6 +863,59 @@ function InvoiceView() {
             Open UPI app
           </a>
         </div>
+      </Sheet>
+
+      <Sheet
+        open={renameOpen}
+        onClose={() => {
+          if (!renaming) setRenameOpen(false);
+        }}
+        title={`Rename ${isQuotation ? "quotation" : "invoice"}`}
+        description={`Update the name or document number for ${invoice.invoiceNumber}.`}
+      >
+        <form onSubmit={handleRename} className="space-y-4">
+          <div>
+            <Label htmlFor="view-rename-input">
+              {isQuotation ? "Quotation name or number" : "Invoice name or number"}
+            </Label>
+            <Input
+              id="view-rename-input"
+              autoFocus
+              placeholder={isQuotation ? "e.g. QOT-2026-001 or Website Quote" : "e.g. INV-2026-001 or Yash Honda - Nov"}
+              value={renameValue}
+              onChange={(e) => {
+                setRenameValue(e.target.value);
+                if (renameError) setRenameError("");
+              }}
+              maxLength={50}
+              disabled={renaming}
+              className={renameError ? "border-red-500 focus-visible:ring-red-500" : ""}
+            />
+            {renameError ? (
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                {renameError}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">
+                This updates the heading across your invoices list, preview, PDF downloads, and share receipts.
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setRenameOpen(false)}
+              disabled={renaming}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={renaming || !renameValue.trim()}>
+              {renaming ? "Saving…" : "Save name"}
+            </Button>
+          </div>
+        </form>
       </Sheet>
     </div>
   );

@@ -10,12 +10,15 @@ import {
   Copy,
   ArrowRightLeft,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { useAppCurrency, useToast } from "@/lib/providers";
-import { listQuotations, deleteInvoice } from "@/lib/db/invoices";
+import { listQuotations, deleteInvoice, renameInvoice } from "@/lib/db/invoices";
 import { formatMoney, formatDate } from "@/lib/formatting";
 import { Input } from "@/components/common/input";
+import { Label } from "@/components/common/label";
 import { Button } from "@/components/common/button";
+import { Sheet } from "@/components/common/sheet";
 import { EmptyState } from "@/components/common/empty-state";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import type { Invoice } from "@/lib/types";
@@ -35,6 +38,13 @@ export default function QuotationsPage() {
     number: string;
   } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<{
+    id: string;
+    number: string;
+  } | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState("");
   const { showToast } = useToast();
   const currency = useAppCurrency();
 
@@ -68,6 +78,29 @@ export default function QuotationsPage() {
       showToast("Couldn't delete the quotation.", "error");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleRename(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!renameTarget) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed) {
+      setRenameError("Please enter a quotation name or number.");
+      return;
+    }
+    setRenaming(true);
+    setRenameError("");
+    try {
+      await renameInvoice(renameTarget.id, trimmed);
+      showToast(`Quotation renamed to ${trimmed}.`);
+      setRenameTarget(null);
+    } catch (error) {
+      setRenameError(
+        error instanceof Error ? error.message : "Couldn't rename the quotation."
+      );
+    } finally {
+      setRenaming(false);
     }
   }
 
@@ -145,8 +178,25 @@ export default function QuotationsPage() {
                     <ScrollText className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-stone-900 dark:text-white">
-                      {quotation.invoiceNumber}
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-stone-900 dark:text-white">
+                        {quotation.invoiceNumber}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setRenameTarget({ id: quotation.id, number: quotation.invoiceNumber });
+                          setRenameValue(quotation.invoiceNumber);
+                          setRenameError("");
+                        }}
+                        className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                        title="Rename quotation"
+                        aria-label={`Rename ${quotation.invoiceNumber}`}
+                      >
+                        <Pencil className="h-3 w-3" aria-hidden="true" />
+                      </button>
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-stone-500 dark:text-stone-400">
                       {quotation.customerSnapshot.name || "Unknown customer"}{" "}
@@ -161,6 +211,19 @@ export default function QuotationsPage() {
                   </span>
                 </Link>
                 <div className="mt-2 flex justify-end gap-1 border-t border-stone-100 pt-2 dark:border-stone-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenameTarget({ id: quotation.id, number: quotation.invoiceNumber });
+                      setRenameValue(quotation.invoiceNumber);
+                      setRenameError("");
+                    }}
+                    className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+                    aria-label={`Rename ${quotation.invoiceNumber}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                    Rename
+                  </button>
                   <Link
                     href={`/invoice/new?duplicate=${quotation.id}&type=invoice`}
                     className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
@@ -205,6 +268,57 @@ export default function QuotationsPage() {
         onConfirm={() => void handleDelete()}
         description="This permanently removes the quotation from this device. This can't be undone."
       />
+
+      <Sheet
+        open={renameTarget !== null}
+        onClose={() => {
+          if (!renaming) setRenameTarget(null);
+        }}
+        title="Rename quotation"
+        description={`Update the name or document number for ${renameTarget?.number ?? "this quotation"}.`}
+      >
+        <form onSubmit={handleRename} className="space-y-4">
+          <div>
+            <Label htmlFor="rename-quotation-input">Quotation name or number</Label>
+            <Input
+              id="rename-quotation-input"
+              autoFocus
+              placeholder="e.g. QOT-2026-001 or Website Redesign Quote"
+              value={renameValue}
+              onChange={(e) => {
+                setRenameValue(e.target.value);
+                if (renameError) setRenameError("");
+              }}
+              maxLength={50}
+              disabled={renaming}
+              className={renameError ? "border-red-500 focus-visible:ring-red-500" : ""}
+            />
+            {renameError ? (
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                {renameError}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">
+                This updates the heading across your quotations list, preview, PDF downloads, and share documents.
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setRenameTarget(null)}
+              disabled={renaming}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={renaming || !renameValue.trim()}>
+              {renaming ? "Saving…" : "Save name"}
+            </Button>
+          </div>
+        </form>
+      </Sheet>
     </div>
   );
 }

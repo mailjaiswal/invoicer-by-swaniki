@@ -261,6 +261,43 @@ export async function updateInvoiceRecord(
   return db.invoices.get(id);
 }
 
+/**
+ * Rename an invoice or quotation, updating its displayed number/name across
+ * the app and all generated documents. Ensures the new name is non-empty,
+ * reasonably bounded, and unique across existing records.
+ */
+export async function renameInvoice(
+  id: string,
+  newNumber: string
+): Promise<Invoice> {
+  const trimmed = newNumber.trim();
+  if (!trimmed) {
+    throw new DataError("Invoice name or number is required.");
+  }
+  if (trimmed.length > 50) {
+    throw new DataError("Invoice name must be 50 characters or less.");
+  }
+
+  const invoice = await db.invoices.get(id);
+  if (!invoice) throw new DataError("Invoice not found.");
+
+  if (invoice.invoiceNumber !== trimmed) {
+    const existing = await db.invoices
+      .where("invoiceNumber")
+      .equalsIgnoreCase(trimmed)
+      .first();
+    if (existing && existing.id !== id) {
+      throw new DataError(`"${trimmed}" is already in use by another invoice.`);
+    }
+  }
+
+  await db.invoices.update(id, {
+    invoiceNumber: trimmed,
+    updatedAt: now(),
+  });
+  return (await db.invoices.get(id))!;
+}
+
 export async function deleteInvoice(id: string): Promise<void> {
   await db.transaction("rw", [db.invoices, db.payments], async () => {
     await db.invoices.delete(id);

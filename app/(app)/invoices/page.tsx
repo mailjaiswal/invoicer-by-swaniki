@@ -14,11 +14,13 @@ import {
   Pencil,
 } from "lucide-react";
 import { useAppCurrency, useToast } from "@/lib/providers";
-import { listInvoices, markInvoicePaid, deleteInvoice } from "@/lib/db/invoices";
+import { listInvoices, markInvoicePaid, deleteInvoice, renameInvoice } from "@/lib/db/invoices";
 import { deriveInvoiceStatus } from "@/lib/invoice-status";
 import { formatMoney, formatDate } from "@/lib/formatting";
 import { Input } from "@/components/common/input";
+import { Label } from "@/components/common/label";
 import { Button } from "@/components/common/button";
+import { Sheet } from "@/components/common/sheet";
 import { EmptyState } from "@/components/common/empty-state";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { StatusBadge } from "@/components/invoice/status-badge";
@@ -51,6 +53,13 @@ export default function InvoicesPage() {
     number: string;
   } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<{
+    id: string;
+    number: string;
+  } | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState("");
   const { showToast } = useToast();
   const currency = useAppCurrency();
 
@@ -104,6 +113,29 @@ export default function InvoicesPage() {
       showToast("Couldn't delete the invoice.", "error");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleRename(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!renameTarget) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed) {
+      setRenameError("Please enter an invoice name or number.");
+      return;
+    }
+    setRenaming(true);
+    setRenameError("");
+    try {
+      await renameInvoice(renameTarget.id, trimmed);
+      showToast(`Invoice renamed to ${trimmed}.`);
+      setRenameTarget(null);
+    } catch (error) {
+      setRenameError(
+        error instanceof Error ? error.message : "Couldn't rename the invoice."
+      );
+    } finally {
+      setRenaming(false);
     }
   }
 
@@ -216,6 +248,21 @@ export default function InvoicesPage() {
                           {invoice.invoiceNumber}
                         </span>
                         <StatusBadge status={derived} className="shrink-0" />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setRenameTarget({ id: invoice.id, number: invoice.invoiceNumber });
+                            setRenameValue(invoice.invoiceNumber);
+                            setRenameError("");
+                          }}
+                          className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                          title="Rename invoice"
+                          aria-label={`Rename ${invoice.invoiceNumber}`}
+                        >
+                          <Pencil className="h-3 w-3" aria-hidden="true" />
+                        </button>
                       </span>
                       <span className="mt-0.5 block truncate text-xs text-stone-500 dark:text-stone-400">
                         {invoice.customerSnapshot.name || "Unknown customer"}{" "}
@@ -230,6 +277,19 @@ export default function InvoicesPage() {
                     </span>
                   </Link>
                   <div className="mt-2 flex justify-end gap-1 border-t border-stone-100 pt-2 dark:border-stone-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRenameTarget({ id: invoice.id, number: invoice.invoiceNumber });
+                        setRenameValue(invoice.invoiceNumber);
+                        setRenameError("");
+                      }}
+                      className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+                      aria-label={`Rename ${invoice.invoiceNumber}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                      Rename
+                    </button>
                     {derived === "draft" ? (
                       <Link
                         href={`/invoice/new?edit=${invoice.id}`}
@@ -292,6 +352,57 @@ export default function InvoicesPage() {
         onConfirm={() => void handleDelete()}
         description="This permanently removes the invoice and its payment records from this device. This can't be undone."
       />
+
+      <Sheet
+        open={renameTarget !== null}
+        onClose={() => {
+          if (!renaming) setRenameTarget(null);
+        }}
+        title="Rename invoice"
+        description={`Update the name or document number for ${renameTarget?.number ?? "this invoice"}.`}
+      >
+        <form onSubmit={handleRename} className="space-y-4">
+          <div>
+            <Label htmlFor="rename-invoice-input">Invoice name or number</Label>
+            <Input
+              id="rename-invoice-input"
+              autoFocus
+              placeholder="e.g. INV-2026-001 or Yash Honda - Nov"
+              value={renameValue}
+              onChange={(e) => {
+                setRenameValue(e.target.value);
+                if (renameError) setRenameError("");
+              }}
+              maxLength={50}
+              disabled={renaming}
+              className={renameError ? "border-red-500 focus-visible:ring-red-500" : ""}
+            />
+            {renameError ? (
+              <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                {renameError}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">
+                This updates the heading across your invoices list, preview, PDF downloads, and share receipts.
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setRenameTarget(null)}
+              disabled={renaming}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={renaming || !renameValue.trim()}>
+              {renaming ? "Saving…" : "Save name"}
+            </Button>
+          </div>
+        </form>
+      </Sheet>
     </div>
   );
 }
