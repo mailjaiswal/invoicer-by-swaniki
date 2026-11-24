@@ -1,7 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Download, Upload, AlertTriangle, FlaskConical, Database, FileJson } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Download, Upload, AlertTriangle, FlaskConical, Database, FileJson, ShieldCheck } from "lucide-react";
+import { Badge } from "@/components/common/badge";
+import {
+  getStoragePersistenceStatus,
+  requestPersistentStorage,
+  type StoragePersistenceStatus,
+} from "@/lib/storage-persistence";
 import {
   Card,
   CardContent,
@@ -47,8 +53,35 @@ export function DataSection() {
   const [clearOpen, setClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [demoloading, setDemoloading] = useState(false);
+  const [storageStatus, setStorageStatus] = useState<StoragePersistenceStatus>({
+    supported: false,
+    persisted: false,
+  });
+  const [requestingPersist, setRequestingPersist] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isDev = process.env.NODE_ENV === "development";
+
+  useEffect(() => {
+    void getStoragePersistenceStatus().then(setStorageStatus);
+  }, []);
+
+  async function enablePersistentStorage() {
+    setRequestingPersist(true);
+    try {
+      const next = await requestPersistentStorage();
+      setStorageStatus(next);
+      if (next.persisted) {
+        showToast("Browser storage is now protected from auto-cleanup.", "success");
+      } else {
+        showToast(
+          "Your browser kept best-effort mode. Installing Invoicer as a desktop app (or bookmarking it) usually grants permanent protection.",
+          "info"
+        );
+      }
+    } finally {
+      setRequestingPersist(false);
+    }
+  }
 
   async function exportBackup() {
     setExporting(true);
@@ -147,6 +180,43 @@ export function DataSection() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>Storage Protection</CardTitle>
+            {storageStatus.supported && (
+              <Badge variant={storageStatus.persisted ? "success" : "warning"}>
+                <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+                {storageStatus.persisted ? "Protected (Persistent)" : "Best-effort"}
+              </Badge>
+            )}
+          </div>
+          <CardDescription>
+            Browsers sometimes clear site data after long periods of inactivity.
+            Invoicer automatically requests persistent storage and keeps a
+            recovery mirror in local storage.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {storageStatus.supported && !storageStatus.persisted && (
+            <Button
+              variant="secondary"
+              onClick={() => void enablePersistentStorage()}
+              disabled={requestingPersist}
+            >
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              {requestingPersist ? "Requesting…" : "Request Persistent Storage"}
+            </Button>
+          )}
+          <p className="text-xs leading-relaxed text-stone-400 dark:text-stone-500">
+            Tip: On desktop Chrome or Edge, click the <strong>Install</strong>{" "}
+            icon in the address bar to install Invoicer as a standalone desktop
+            app — installed apps are protected from automatic browser cleanup.
+            Always keep an exported JSON backup for complete peace of mind.
+          </p>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Backup</CardTitle>

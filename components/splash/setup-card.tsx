@@ -2,13 +2,16 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Building2 } from "lucide-react";
+import { Building2, Upload } from "lucide-react";
 import { Button } from "@/components/common/button";
 import { Input } from "@/components/common/input";
 import { Label } from "@/components/common/label";
 import { LogoUpload } from "@/components/splash/logo-upload";
 import { PRIVACY_NOTE } from "@/lib/constants";
 import { useApp, useToast } from "@/lib/providers";
+import { parseBackup } from "@/lib/backup";
+import { importBackup } from "@/lib/db/backup";
+import { DataError } from "@/lib/db/database";
 
 interface Field {
   key: keyof BusinessFields;
@@ -54,7 +57,31 @@ export function SetupCard() {
   });
   const [logo, setLogo] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [restoring, setRestoring] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const restoreInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  async function handleRestoreFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setRestoring(true);
+    setError(null);
+    try {
+      const text = await file.text();
+      const parsed = parseBackup(text);
+      const result = await importBackup(parsed, "replace");
+      showToast(`Backup restored — ${result.records} records.`, "success");
+      router.replace("/home");
+    } catch (err) {
+      setError(
+        err instanceof DataError
+          ? err.message
+          : "That backup file couldn't be restored. Please check the file and try again."
+      );
+      setRestoring(false);
+    }
+  }
 
   function setField(key: keyof BusinessFields, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -151,16 +178,35 @@ export function SetupCard() {
               type="submit"
               size="lg"
               className="w-full"
-              disabled={saving}
+              disabled={saving || restoring}
             >
               {saving ? "Setting up…" : "Start Creating Invoices"}
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-[11px] leading-relaxed text-stone-400 dark:text-stone-500">
-            Only your business name is required — you can add the rest anytime
-            in Settings. {PRIVACY_NOTE}
-          </p>
+          <div className="mt-4 flex flex-col items-center gap-2 border-t border-stone-100 pt-4 dark:border-stone-800">
+            <input
+              ref={restoreInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              aria-label="Restore from backup file"
+              onChange={(e) => void handleRestoreFile(e)}
+            />
+            <button
+              type="button"
+              onClick={() => restoreInputRef.current?.click()}
+              disabled={restoring || saving}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 hover:underline disabled:opacity-50 dark:text-brand-300"
+            >
+              <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+              {restoring ? "Restoring backup…" : "Already have a backup? Restore from file"}
+            </button>
+            <p className="text-center text-[11px] leading-relaxed text-stone-400 dark:text-stone-500">
+              Only your business name is required — you can add the rest anytime
+              in Settings. {PRIVACY_NOTE}
+            </p>
+          </div>
         </div>
       </div>
     </div>

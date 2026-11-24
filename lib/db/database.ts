@@ -131,5 +131,12 @@ export async function clearAllData(): Promise<void> {
     db.payments.clear(),
     db.presets.clear(),
   ]);
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem("invoicer:auto-snapshot:v1");
+    } catch {
+      // Ignore storage access errors.
+    }
+  }
   await getSettings();
 }

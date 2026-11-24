@@ -21,6 +21,11 @@ import {
   ensureDefaults,
   getSettings,
 } from "@/lib/db/database";
+import {
+  requestPersistentStorage,
+  restoreLocalSnapshotIfNeeded,
+  saveLocalSnapshot,
+} from "@/lib/storage-persistence";
 import type { AppSettings, Business } from "@/lib/types";
 import { cn, uid } from "@/lib/utils";
 
@@ -160,11 +165,13 @@ function DataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let alive = true;
-    ensureDefaults()
+    restoreLocalSnapshotIfNeeded()
+      .then(() => ensureDefaults())
       .then(() => getSettings())
       .finally(() => {
         if (alive) setHydrated(true);
       });
+    void requestPersistentStorage();
     return () => {
       alive = false;
     };
@@ -174,6 +181,27 @@ function DataProvider({ children }: { children: ReactNode }) {
     business && business.length > 0 ? business[0] : undefined;
   const appSettings =
     settings && settings.length > 0 ? settings[0] : undefined;
+
+  // Keep a localStorage mirror updated whenever business/settings exist so
+  // setup & core data survive IndexedDB-only browser cleanups.
+  useEffect(() => {
+    if (!hydrated || !account?.name?.trim()) return;
+    const t = setTimeout(() => {
+      void saveLocalSnapshot();
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [hydrated, account, appSettings]);
+
+  useEffect(() => {
+    if (!hydrated || !account?.name?.trim()) return;
+    const onHide = () => {
+      if (document.visibilityState === "hidden") {
+        void saveLocalSnapshot();
+      }
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [hydrated, account?.name]);
 
   const updateBusiness = useCallback(async (patch: Partial<Business>) => {
     await db.transaction("rw", db.business, async () => {
