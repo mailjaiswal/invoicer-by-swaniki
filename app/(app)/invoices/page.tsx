@@ -12,20 +12,23 @@ import {
   Trash2,
   Loader2,
   Pencil,
+  Upload,
 } from "lucide-react";
 import { useAppCurrency, useToast } from "@/lib/providers";
-import { listInvoices, markInvoicePaid, deleteInvoice, renameInvoice } from "@/lib/db/invoices";
+import { listInvoices, markInvoicePaid, deleteInvoice, renameInvoice, saveUploadedInvoice } from "@/lib/db/invoices";
 import { deriveInvoiceStatus } from "@/lib/invoice-status";
 import { formatMoney, formatDate } from "@/lib/formatting";
 import { Input } from "@/components/common/input";
 import { Label } from "@/components/common/label";
+import { Textarea } from "@/components/common/textarea";
+import { Badge } from "@/components/common/badge";
 import { Button } from "@/components/common/button";
 import { Sheet } from "@/components/common/sheet";
 import { EmptyState } from "@/components/common/empty-state";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { StatusBadge } from "@/components/invoice/status-badge";
-import { cn } from "@/lib/utils";
-import type { Invoice, InvoiceStatus } from "@/lib/types";
+import { cn, formatDateInput } from "@/lib/utils";
+import type { Invoice, InvoiceAttachment, InvoiceStatus } from "@/lib/types";
 
 const EMPTY_INVOICES: Invoice[] = [];
 
@@ -60,6 +63,16 @@ export default function InvoicesPage() {
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [renameError, setRenameError] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<InvoiceAttachment | null>(null);
+  const [uploadNumber, setUploadNumber] = useState("");
+  const [uploadCustomer, setUploadCustomer] = useState("");
+  const [uploadDate, setUploadDate] = useState(() => formatDateInput(new Date()));
+  const [uploadTotal, setUploadTotal] = useState("");
+  const [uploadPaid, setUploadPaid] = useState(true);
+  const [uploadNotes, setUploadNotes] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const { showToast } = useToast();
   const currency = useAppCurrency();
 
@@ -139,6 +152,81 @@ export default function InvoicesPage() {
     }
   }
 
+  function resetUploadForm() {
+    setUploadFile(null);
+    setUploadNumber("");
+    setUploadCustomer("");
+    setUploadDate(formatDateInput(new Date()));
+    setUploadTotal("");
+    setUploadPaid(true);
+    setUploadNotes("");
+    setUploadError("");
+  }
+
+  function handlePickUploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError("");
+
+    const maxBytes = 15 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setUploadError("File is larger than 15 MB. Please choose a smaller file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : "";
+      if (!dataUrl) {
+        setUploadError("Couldn't read that file.");
+        return;
+      }
+      setUploadFile({
+        fileName: file.name,
+        mimeType: file.type || "application/pdf",
+        dataUrl,
+        fileSize: file.size,
+      });
+      if (!uploadNumber.trim()) {
+        const stem = file.name.replace(/\.[^/.]+$/, "").trim();
+        if (stem) setUploadNumber(stem.slice(0, 50));
+      }
+    };
+    reader.onerror = () => setUploadError("Couldn't read that file.");
+    reader.readAsDataURL(file);
+  }
+
+  async function handleUploadSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!uploadFile) {
+      setUploadError("Please select an invoice PDF or image file.");
+      return;
+    }
+    setUploading(true);
+    setUploadError("");
+    try {
+      const saved = await saveUploadedInvoice({
+        invoiceNumber: uploadNumber,
+        customerName: uploadCustomer,
+        invoiceDate: uploadDate,
+        total: Number(uploadTotal) || 0,
+        paid: uploadPaid,
+        notes: uploadNotes,
+        attachment: uploadFile,
+      });
+      showToast(`Saved ${saved.invoiceNumber} to your records.`);
+      setUploadOpen(false);
+      resetUploadForm();
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : "Couldn't save the uploaded invoice."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -150,12 +238,25 @@ export default function InvoicesPage() {
             Track, duplicate and share your invoices.
           </p>
         </div>
-        <Link href="/invoice/new">
-          <Button size="sm">
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            New invoice
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              resetUploadForm();
+              setUploadOpen(true);
+            }}
+          >
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            Upload invoice
           </Button>
-        </Link>
+          <Link href="/invoice/new">
+            <Button size="sm">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              New invoice
+            </Button>
+          </Link>
+        </div>
       </header>
 
       <div className="flex flex-col gap-3">
@@ -248,6 +349,11 @@ export default function InvoicesPage() {
                           {invoice.invoiceNumber}
                         </span>
                         <StatusBadge status={derived} className="shrink-0" />
+                        {invoice.attachment && (
+                          <Badge variant="outline" className="shrink-0 text-[10px]">
+                            Uploaded
+                          </Badge>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -399,6 +505,158 @@ export default function InvoicesPage() {
             </Button>
             <Button type="submit" disabled={renaming || !renameValue.trim()}>
               {renaming ? "Saving…" : "Save name"}
+            </Button>
+          </div>
+        </form>
+      </Sheet>
+
+      <Sheet
+        open={uploadOpen}
+        onClose={() => {
+          if (!uploading) setUploadOpen(false);
+        }}
+        title="Upload older invoice"
+        description="Store an existing invoice PDF or image in your local records for future reference."
+      >
+        <form onSubmit={(e) => void handleUploadSubmit(e)} className="space-y-4">
+          <div>
+            <Label htmlFor="upload-invoice-file">Invoice file (PDF or Image) *</Label>
+            <label
+              htmlFor="upload-invoice-file"
+              className="mt-1.5 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50/70 px-4 py-5 text-center transition-colors hover:border-brand-500 hover:bg-brand-50/40 dark:border-stone-700 dark:bg-stone-800/50 dark:hover:border-brand-500"
+            >
+              <Upload className="mb-1.5 h-5 w-5 text-stone-400" aria-hidden="true" />
+              <span className="text-sm font-medium text-stone-700 dark:text-stone-200">
+                {uploadFile ? uploadFile.fileName : "Choose a PDF or image file"}
+              </span>
+              <span className="mt-0.5 text-xs text-stone-400">
+                {uploadFile
+                  ? `${(uploadFile.fileSize / 1024).toFixed(0)} KB · Click to change`
+                  : "PDF, PNG, JPG or WebP up to 15 MB"}
+              </span>
+            </label>
+            <input
+              id="upload-invoice-file"
+              type="file"
+              accept="application/pdf,image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={handlePickUploadFile}
+              disabled={uploading}
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="upload-invoice-number">Invoice number *</Label>
+              <Input
+                id="upload-invoice-number"
+                placeholder="e.g. INV-0012"
+                value={uploadNumber}
+                onChange={(e) => setUploadNumber(e.target.value)}
+                maxLength={50}
+                disabled={uploading}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="upload-invoice-date">Invoice date</Label>
+              <Input
+                id="upload-invoice-date"
+                type="date"
+                value={uploadDate}
+                onChange={(e) => setUploadDate(e.target.value)}
+                disabled={uploading}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="upload-customer-name">Customer name *</Label>
+              <Input
+                id="upload-customer-name"
+                placeholder="e.g. Acme Corp"
+                value={uploadCustomer}
+                onChange={(e) => setUploadCustomer(e.target.value)}
+                disabled={uploading}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="upload-total-amount">Total amount</Label>
+              <Input
+                id="upload-total-amount"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="any"
+                placeholder="0.00"
+                value={uploadTotal}
+                onChange={(e) => setUploadTotal(e.target.value)}
+                disabled={uploading}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label>Payment status</Label>
+            <div className="mt-1.5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setUploadPaid(true)}
+                className={cn(
+                  "flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+                  uploadPaid
+                    ? "border-brand-600 bg-brand-50 text-brand-800 dark:border-brand-500 dark:bg-brand-900/40 dark:text-brand-200"
+                    : "border-stone-200 text-stone-600 dark:border-stone-700 dark:text-stone-400"
+                )}
+              >
+                Paid
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadPaid(false)}
+                className={cn(
+                  "flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+                  !uploadPaid
+                    ? "border-amber-600 bg-amber-50 text-amber-800 dark:border-amber-500 dark:bg-amber-900/40 dark:text-amber-200"
+                    : "border-stone-200 text-stone-600 dark:border-stone-700 dark:text-stone-400"
+                )}
+              >
+                Unpaid
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="upload-notes">Notes (optional)</Label>
+            <Textarea
+              id="upload-notes"
+              rows={2}
+              placeholder="e.g. Generated in older Invoicer version"
+              value={uploadNotes}
+              onChange={(e) => setUploadNotes(e.target.value)}
+              disabled={uploading}
+            />
+          </div>
+
+          {uploadError && (
+            <p className="text-xs font-medium text-red-600 dark:text-red-400">
+              {uploadError}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setUploadOpen(false)}
+              disabled={uploading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={uploading || !uploadFile}>
+              {uploading ? "Saving…" : "Save to Records"}
             </Button>
           </div>
         </form>

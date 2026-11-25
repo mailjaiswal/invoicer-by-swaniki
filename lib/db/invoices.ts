@@ -16,6 +16,7 @@ import type {
   CustomerDraft,
   DocType,
   Invoice,
+  InvoiceAttachment,
   InvoiceDraft,
   InvoiceItem,
   Payment,
@@ -429,4 +430,78 @@ export async function setInvoiceCustomer(
   customerId: string
 ): Promise<void> {
   await db.invoices.update(invoiceId, { customerId, updatedAt: now() });
+}
+
+export interface SaveUploadedInvoiceInput {
+  invoiceNumber: string;
+  customerName: string;
+  invoiceDate: string;
+  total: number;
+  paid: boolean;
+  notes?: string;
+  attachment: InvoiceAttachment;
+}
+
+/**
+ * Save an uploaded historical invoice (PDF or image) into local records
+ * without modifying the ongoing invoice number counter.
+ */
+export async function saveUploadedInvoice(
+  input: SaveUploadedInvoiceInput
+): Promise<Invoice> {
+  const trimmedNumber = input.invoiceNumber.trim();
+  const trimmedCustomer = input.customerName.trim();
+  if (!trimmedNumber) {
+    throw new DataError("Please enter an invoice number or reference.");
+  }
+  if (!trimmedCustomer) {
+    throw new DataError("Please enter the customer name.");
+  }
+  const amount = round2(Math.max(0, Number(input.total) || 0));
+
+  return db.transaction("rw", [db.invoices], async () => {
+    const duplicate = await db.invoices
+      .where("invoiceNumber")
+      .equals(trimmedNumber)
+      .first();
+    if (duplicate) {
+      throw new DataError(
+        `An invoice named "${trimmedNumber}" already exists. Use a unique number.`
+      );
+    }
+
+    const timestamp = now();
+    const record: Invoice = {
+      id: uid("inv"),
+      docType: "invoice",
+      invoiceNumber: trimmedNumber,
+      customerId: null,
+      customerSnapshot: {
+        name: trimmedCustomer,
+      },
+      items: [],
+      invoiceDate: input.invoiceDate || formatDateInput(new Date()),
+      dueDate: null,
+      validityDate: null,
+      subtotal: amount,
+      discount: 0,
+      taxMode: "none",
+      taxBreakup: { type: "none", rate: 0, cgst: 0, sgst: 0, igst: 0, amount: 0 },
+      taxableAmount: amount,
+      taxTotal: 0,
+      total: amount,
+      payment: input.paid
+        ? { status: "paid", amountPaid: amount, balance: 0, paidAt: timestamp }
+        : { status: "unpaid", amountPaid: 0, balance: amount },
+      notes: input.notes?.trim() || undefined,
+      template: "classic",
+      attachment: input.attachment,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      status: input.paid ? "paid" : "unpaid",
+    };
+
+    await db.invoices.put(record);
+    return record;
+  });
 }

@@ -41,6 +41,13 @@ export interface PaymentDetails {
   reference?: string;
 }
 
+export interface InvoiceAttachment {
+  fileName: string;
+  mimeType: string;
+  dataUrl: string;
+  fileSize: number;
+}
+
 export interface Invoice {
   id: string;
   docType: DocType;
@@ -63,6 +70,7 @@ export interface Invoice {
   notes?: string;
   terms?: string;
   template: string;
+  attachment?: InvoiceAttachment;
   createdAt: number;
   updatedAt: number;
   status: InvoiceStatus;

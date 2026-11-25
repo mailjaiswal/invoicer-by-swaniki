@@ -118,6 +118,31 @@ function InvoiceView() {
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [renameError, setRenameError] = useState("");
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const dataUrl = invoice?.attachment?.dataUrl;
+    if (!dataUrl) {
+      setAttachmentUrl(null);
+      return;
+    }
+    let active = true;
+    let objectUrl: string | null = null;
+    fetch(dataUrl)
+      .then((r) => r.blob())
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setAttachmentUrl(objectUrl);
+      })
+      .catch(() => {
+        if (active) setAttachmentUrl(dataUrl);
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [invoice?.attachment?.dataUrl]);
 
   const status = useMemo(
     () => (invoice ? deriveInvoiceStatus(invoice) : undefined),
@@ -300,6 +325,15 @@ function InvoiceView() {
   };
 
   const handleDownloadPdf = async () => {
+    if (invoice.attachment) {
+      const link = document.createElement("a");
+      link.href = invoice.attachment.dataUrl;
+      link.download = invoice.attachment.fileName || `${invoice.invoiceNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return;
+    }
     setBusy("pdf");
     try {
       await generateInvoicePdf(invoice, business, settings);
@@ -421,18 +455,20 @@ function InvoiceView() {
             <Pencil className="h-4 w-4" aria-hidden="true" />
             Rename
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              router.push(
-                `/invoice/new?duplicate=${invoice.id}&type=${isQuotation ? "quotation" : "invoice"}`
-              )
-            }
-          >
-            <Copy className="h-4 w-4" aria-hidden="true" />
-            Duplicate
-          </Button>
+          {!invoice.attachment && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                router.push(
+                  `/invoice/new?duplicate=${invoice.id}&type=${isQuotation ? "quotation" : "invoice"}`
+                )
+              }
+            >
+              <Copy className="h-4 w-4" aria-hidden="true" />
+              Duplicate
+            </Button>
+          )}
           <Button
             variant="destructive"
             size="sm"
@@ -466,18 +502,58 @@ function InvoiceView() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-        <FullPagePreview
-          landscape={
-            (settings?.pageOrientation ?? "portrait") === "landscape"
-          }
-        >
-          <InvoiceDocument
-            business={business}
-            settings={settings}
-            invoice={invoice}
-            status={status}
-          />
-        </FullPagePreview>
+        {invoice.attachment ? (
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-stone-100 dark:border-stone-800">
+              <div className="min-w-0">
+                <CardTitle className="truncate text-base">
+                  {invoice.attachment.fileName}
+                </CardTitle>
+                <CardDescription>
+                  Uploaded invoice record · {(invoice.attachment.fileSize / 1024).toFixed(0)} KB
+                </CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={handleDownloadPdf}>
+                <Download className="h-4 w-4" aria-hidden="true" />
+                Download original
+              </Button>
+            </CardHeader>
+            <CardContent className="p-4">
+              {invoice.attachment.mimeType === "application/pdf" ? (
+                attachmentUrl ? (
+                  <iframe
+                    src={attachmentUrl}
+                    title={invoice.attachment.fileName}
+                    className="h-[780px] w-full rounded-xl border border-stone-200 bg-white dark:border-stone-800"
+                  />
+                ) : (
+                  <div className="flex h-64 items-center justify-center text-sm text-stone-500">
+                    Loading PDF preview…
+                  </div>
+                )
+              ) : (
+                <img
+                  src={invoice.attachment.dataUrl}
+                  alt={invoice.attachment.fileName}
+                  className="mx-auto max-h-[820px] w-auto rounded-xl border border-stone-200 object-contain dark:border-stone-800"
+                />
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <FullPagePreview
+            landscape={
+              (settings?.pageOrientation ?? "portrait") === "landscape"
+            }
+          >
+            <InvoiceDocument
+              business={business}
+              settings={settings}
+              invoice={invoice}
+              status={status}
+            />
+          </FullPagePreview>
+        )}
 
         <aside className="space-y-4 lg:sticky lg:top-4 print:hidden">
           {isQuotation ? (
@@ -688,26 +764,30 @@ function InvoiceView() {
                   Generate receipt
                 </Button>
               )}
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() =>
-                  router.push(
-                    `/invoice/new?duplicate=${invoice.id}&type=${isQuotation ? "quotation" : "invoice"}`
-                  )
-                }
-              >
-                <Copy className="h-4 w-4" aria-hidden="true" />
-                Create a copy
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push(`/invoice/new?edit=${invoice.id}`)}
-              >
-                <FilePlus2 className="h-4 w-4" aria-hidden="true" />
-                {status === "draft" ? "Resume editing" : "Edit as new invoice"}
-              </Button>
+              {!invoice.attachment && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() =>
+                      router.push(
+                        `/invoice/new?duplicate=${invoice.id}&type=${isQuotation ? "quotation" : "invoice"}`
+                      )
+                    }
+                  >
+                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    Create a copy
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => router.push(`/invoice/new?edit=${invoice.id}`)}
+                  >
+                    <FilePlus2 className="h-4 w-4" aria-hidden="true" />
+                    {status === "draft" ? "Resume editing" : "Edit as new invoice"}
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </aside>
